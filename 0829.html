@@ -238,8 +238,8 @@
             players: [],            // 參與回合的玩家陣列 (human + potential AI)
             characters: [],         // 故事主角陣列
             currentPlayerIndex: 0,
-            gong: null,             // 攻主角的引用
-            shou: null,             // 受主角的引用
+            gongs: [],              // 攻主角的陣列 (現在允許多個)
+            shous: [],              // 受主角的陣列 (現在允許多個)
             worldview: null,
             relationship: null,
             mainDeck: [],
@@ -315,13 +315,13 @@
         // Game Play Section Elements
         const gamePlaySection = document.getElementById('game-play-section');
         const currentWorldviewDisplay = document.getElementById('current-worldview');
-        const currentRelationshipDisplay = document.getElementById('current-relationship'); // Fixed document.getElementById typo
+        const currentRelationshipDisplay = document.getElementById('current-relationship'); 
         const activeCharactersDisplay = document.getElementById('active-characters-display');
         const storyDisplay = document.getElementById('story-display');
         const currentPlayerNameDisplay = document.getElementById('current-player-name');
         const playerGoalDisplay = document.getElementById('player-goal-display');
-        const totalCardsPlayedDisplay = document.getElementById('total-cards-played-display'); // Changed ID
-        const maxGameCardsDisplay = document.getElementById('max-game-cards-display'); // New ID for total cards possible
+        const totalCardsPlayedDisplay = document.getElementById('total-cards-played-display'); 
+        const maxGameCardsDisplay = document.getElementById('max-game-cards-display'); 
         const playerHandContainer = document.getElementById('player-hand-container');
         const playerDescriptionInput = document.getElementById('player-description');
         const playCardButton = document.getElementById('play-card-button');
@@ -434,7 +434,7 @@
         async function generateWorldAndRelationshipWithAI() {
             showLoading();
             const systemPrompt = `你是一位經驗豐富的愛情故事創作者，請為一個多元愛情故事遊戲《大家一起 Making Love》生成一個引人入勝的「世界觀」和「初始關係」。
-            世界觀應具體且富有想像力 (例如：科幻都市、奇幻學院、古風江湖等)，**請務必簡潔，不超過15個字**。
+            世界觀應具體且富有想像力 (例如：科幻都市、末日生存、古風江湖等)，**請務必簡潔，不超過15個字**。
             初始關係應能引發有趣的互動 (例如：青梅竹馬、宿敵、契約關係、異世界相遇等)，**請務必簡潔，不超過15個字**。
 
             請以 JSON 格式回應，包含 'worldview' 和 'relationship' 兩個字段，例如：
@@ -531,42 +531,33 @@
             document.querySelectorAll('input[name^="role-"]').forEach(radio => {
                 radio.addEventListener('change', (event) => {
                     const charIndex = parseInt(event.target.id.split('-')[1]);
+                    const selectedCharacter = game.characters[charIndex];
                     const selectedRole = event.target.value;
 
-                    game.characters.forEach((char, i) => {
-                        if (char.isGong && i !== charIndex) {
-                            char.isGong = false;
-                            document.getElementById(`char-${i}-isGong`).checked = false;
-                            document.getElementById(`char-${i}-noRole`).checked = true;
-                        }
-                        if (char.isShou && i !== charIndex) {
-                            char.isShou = false;
-                            document.getElementById(`char-${i}-isShou`).checked = false;
-                            document.getElementById(`char-${i}-noRole`).checked = true;
-                        }
-                    });
+                    // Reset selected character's roles first
+                    selectedCharacter.isGong = false;
+                    selectedCharacter.isShou = false;
 
+                    // Update the selected character's role
                     if (selectedRole === 'gong') {
-                        game.characters[charIndex].isGong = true;
-                        game.characters[charIndex].isShou = false;
-                        game.gong = game.characters[charIndex];
-                        if (game.shou === game.characters[charIndex]) game.shou = null;
+                        selectedCharacter.isGong = true;
                     } else if (selectedRole === 'shou') {
-                        game.characters[charIndex].isShou = true;
-                        game.characters[charIndex].isGong = false;
-                        game.shou = game.characters[charIndex];
-                        if (game.gong === game.characters[charIndex]) game.gong = null;
-                    } else {
-                        game.characters[charIndex].isGong = false;
-                        game.characters[charIndex].isShou = false;
-                        if (game.gong === game.characters[charIndex]) game.gong = null;
-                        if (game.shou === game.characters[charIndex]) game.shou = null;
+                        selectedCharacter.isShou = true;
                     }
 
+                    // Re-filter the gongs and shous arrays to reflect all changes
+                    game.gongs = game.characters.filter(c => c.isGong);
+                    game.shous = game.characters.filter(c => c.isShou);
+                    
+                    // Re-render all radio buttons to ensure UI consistency after changes
                     game.characters.forEach((char, i) => {
-                        document.getElementById(`char-${i}-isGong`).checked = char.isGong;
-                        document.getElementById(`char-${i}-isShou`).checked = char.isShou;
-                        document.getElementById(`char-${i}-noRole`).checked = !char.isGong && !char.isShou;
+                        const isGongRadio = document.getElementById(`char-${i}-isGong`);
+                        const isShouRadio = document.getElementById(`char-${i}-isShou`);
+                        const noRoleRadio = document.getElementById(`char-${i}-noRole`);
+
+                        if (isGongRadio) isGongRadio.checked = char.isGong;
+                        if (isShouRadio) isShouRadio.checked = char.isShou;
+                        if (noRoleRadio) noRoleRadio.checked = !char.isGong && !char.isShou;
                     });
                 });
             });
@@ -581,9 +572,9 @@
                 
                 char.gender = getRandomItem(game.characterData.genders);
                 const genericIdentities = ['旅人', '間諜', '醫師', '農夫', '航海士', '鍊金術師', '學者', '工匠', '僧侶', '詩人','醫者','學生', '老師', '藝術家', '科學家', '冒險者', '商人', '傭兵', '王族', '平民'];
-                const genericPersonalities = ['樂觀', '多疑', '固執', '隨和', '敏感', '堅毅', '風趣', '孤傲', '謹慎', '果斷','開朗', '內向', '神秘', '熱情', '冷靜', '傲嬌', '溫柔', '霸道'];
+                const genericPersonalities = ['咬唇習慣', '眼神勾人', '身材火辣', '愛穿緊身衣', '走路帶風搖曳', '常露出鎖骨', '指尖纏繞髮絲', '刻意保持神秘感', '說話帶挑逗語氣', '笑容中帶壞意','樂觀', '多疑', '固執', '隨和', '敏感', '堅毅', '風趣', '孤傲', '謹慎', '果斷','開朗', '內向', '神秘', '熱情', '冷靜', '傲嬌', '溫柔', '霸道'];
                 const genericTraits = ['捲髮', '雀斑', '左撇子', '體格壯碩', '步伐輕盈', '嗓音沙啞', '常帶手套', '喜歡戴帽子', '笑容燦爛', '眼神銳利','眼鏡', '長髮', '疤痕', '高挑', '嬌小', '聲音低沉', '聲音清脆', '喜歡穿黑衣', '喜歡穿白衣','頭腦靈活', '記憶力超群', '身手敏捷', '體力驚人', '善於觀察', '口才一流', '意志堅強', '擅長隱匿', '直覺敏銳'];
-                const genericHobbies = ['閱讀', '寫作', '繪畫', '音樂', '運動', '烹飪', '旅行', '研究', '收集','釣魚', '園藝', '舞蹈', '雕刻', '下棋', '占卜', '書法', '茶道', '觀星', '攝影'];
+                const genericHobbies = ['惡作劇', '雙關語', '角色扮演', '收集禁書', '偷窺', '挑釁他人', '說謊成癮', '危險遊戲', '支配或被支配的感覺', '打破禁忌','閱讀', '寫作', '繪畫', '音樂', '運動', '烹飪', '旅行', '研究', '收集','釣魚', '園藝', '舞蹈', '雕刻', '下棋', '占卜', '書法', '茶道', '觀星', '攝影'];
 
                 char.identity = getRandomItem(genericIdentities);
                 char.personality = getRandomItem(genericPersonalities);
@@ -611,24 +602,30 @@
             }
             hideLoading();
 
-            let availableCharsForRoles = shuffle([...game.characters]);
-            game.gong = null;
-            game.shou = null;
-            game.characters.forEach(c => { c.isGong = false; c.isShou = false; });
+            // Initial assignment of one Gong and one Shou if not already set, for at least a basic setup
+            game.gongs = [];
+            game.shous = [];
+            game.characters.forEach(c => { c.isGong = false; c.isShou = false; }); // Clear all roles first for safety
 
-            if (availableCharsForRoles.length >= 2) {
-                game.gong = availableCharsForRoles.shift();
-                game.gong.isGong = true;
+            let availableForGong = shuffle([...game.characters]);
+            let availableForShou = shuffle([...game.characters]);
 
-                const potentialShouIndex = availableCharsForRoles.findIndex(c => c.id !== game.gong.id);
-                if (potentialShouIndex !== -1) {
-                    game.shou = availableCharsForRoles[potentialShouIndex];
-                    game.shou.isShou = true;
-                } else if (game.characters.length > 1) {
-                     game.shou = game.characters.find(c => c.id !== game.gong.id);
-                     if (game.shou) game.shou.isShou = true;
+            if (availableForGong.length > 0 && availableForShou.length > 0) {
+                // Assign first gong
+                game.gongs.push(availableForGong[0]);
+                game.gongs[0].isGong = true;
+
+                // Assign first shou (ensure it's not the same as gong if possible)
+                let shouCandidate = availableForShou.find(c => c.id !== game.gongs[0].id);
+                if (!shouCandidate && availableForShou.length > 0) { // If only one character or no other distinct character
+                    shouCandidate = availableForShou[0];
+                }
+                if (shouCandidate) {
+                    game.shous.push(shouCandidate);
+                    shouCandidate.isShou = true;
                 }
             }
+
 
             game.characters.forEach((char, i) => {
                 document.getElementById(`char-${i}-isGong`).checked = char.isGong;
@@ -732,6 +729,7 @@
             game.worldview = worldviewInput.value;
             game.relationship = relationshipInput.value;
 
+            // Update game.characters roles from UI inputs
             game.characters.forEach((char, index) => {
                 char.name = document.getElementById(`char-${index}-name`).value;
                 char.gender = document.getElementById(`char-${index}-gender`).value;
@@ -745,10 +743,11 @@
                 char.isShou = document.getElementById(`char-${index}-isShou`).checked;
             });
 
-            game.gong = game.characters.find(c => c.isGong);
-            game.shou = game.characters.find(c => c.isShou);
+            // Re-filter gongs and shous based on final UI state
+            game.gongs = game.characters.filter(c => c.isGong);
+            game.shous = game.characters.filter(c => c.isShou);
 
-            if (!game.gong || !game.shou) {
+            if (game.gongs.length === 0 || game.shous.length === 0) {
                 showMessage('請至少指定一位「攻」和一位「受」作為核心主角！', 'error');
                 return;
             }
@@ -1095,9 +1094,10 @@
 
 
         async function evaluatePlayerGoalWithAI(player, allPlayerActionsText, finalOverallStory) {
-            const { gong, shou, relationship, worldview, characters } = game;
-            const gongName = gong ? gong.name : '攻主角';
-            const shouName = shou ? shou.name : '受主角';
+            // Updated to use game.gongs and game.shous
+            const { gongs, shous, relationship, worldview, characters } = game;
+            const gongNames = gongs.map(g => g.name).join('、') || '未指定攻';
+            const shouNames = shous.map(s => s.name).join('、') || '未指定受';
             const allProtagonistsSummary = characters.map(c => c.name).join('；');
 
             const systemPrompt = `你是一位嚴謹的遊戲裁判，將根據遊戲中的所有玩家行動歷史和最終生成的完整故事，判斷一位玩家的個人目標是否達成。
@@ -1106,8 +1106,8 @@
             世界觀: ${worldview}
             初始關係: ${relationship}
             故事主角們: ${allProtagonistsSummary}
-            核心攻角色: ${gongName}
-            核心受角色: ${shouName}
+            核心攻角色們: ${gongNames}
+            核心受角色們: ${shouNames}
             玩家目標: 「${player.goal}」
 
             你的任務是：
@@ -1172,10 +1172,11 @@
                 return `${action.playerName} 打出卡牌：「${action.card.name}」。描述：「${action.description}」`;
             }).join('\n');
 
-            const { gong, shou, relationship, worldview, characters } = game;
+            const { gongs, shous, relationship, worldview, characters } = game;
 
-            const gongInfo = gong ? `${gong.name} (攻, 性別:${gong.gender})` : '未指定攻';
-            const shouInfo = shou ? `${shou.name} (受, 性別:${shou.gender})` : '未指定受';
+            // Updated to use arrays for gong and shou info
+            const gongInfo = gongs.map(g => `${g.name} (攻, 性別:${g.gender})`).join('、') || '未指定攻';
+            const shouInfo = shous.map(s => `${s.name} (受, 性別:${s.gender})`).join('、') || '未指定受';
             
             // Limit characters info for prompt to avoid length issues
             const allProtagonistsSummary = characters.map(c => {
@@ -1192,9 +1193,10 @@
             世界觀: ${worldview}
             初始關係: ${relationship}
             故事主角們: ${allProtagonistsSummary}
-            目前的攻: ${gongInfo}
-            目前的受: ${shouInfo}
+            目前的攻角色們: ${gongInfo}
+            目前的受角色們: ${shouInfo}
             ${game.endingCardPlayed ? `遊戲因結局卡「${game.endingCardPlayed.name}」結束，其描述為：「${game.endingCardPlayed.description}」。` : `遊戲因完成所有回合而結束。`}
+            請注意，故事中可能存在多個攻或受角色，請將此納入故事創作，創造更豐富的劇情線。
 
             你的任務是：
             1. 將所有玩家在遊戲中打出的卡牌和描述，整合為一個流暢且邏輯連貫的完整故事。
