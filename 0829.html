@@ -434,8 +434,8 @@
         async function generateWorldAndRelationshipWithAI() {
             showLoading();
             const systemPrompt = `你是一位經驗豐富的愛情故事創作者，請為一個多元愛情故事遊戲《大家一起 Making Love》生成一個引人入勝的「世界觀」和「初始關係」。
-            世界觀應具體且富有想像力 (例如：科幻都市、奇幻學院、古風江湖等)。
-            初始關係應能引發有趣的互動 (例如：青梅竹馬、宿敵、契約關係、異世界相遇等)。
+            世界觀應具體且富有想像力 (例如：科幻都市、奇幻學院、古風江湖等)，**請務必簡潔，不超過15個字**。
+            初始關係應能引發有趣的互動 (例如：青梅竹馬、宿敵、契約關係、異世界相遇等)，**請務必簡潔，不超過15個字**。
 
             請以 JSON 格式回應，包含 'worldview' 和 'relationship' 兩個字段，例如：
             {"worldview": "蒸汽朋克工業城", "relationship": "上下屬的秘密戀情"}
@@ -580,10 +580,10 @@
                 const char = game.characters[index];
                 
                 char.gender = getRandomItem(game.characterData.genders);
-                const genericIdentities = ['學生', '老師', '藝術家', '科學家', '冒險者', '商人', '傭兵', '王族', '平民'];
-                const genericPersonalities = ['開朗', '內向', '神秘', '熱情', '冷靜', '傲嬌', '溫柔', '霸道'];
-                const genericTraits = ['眼鏡', '長髮', '疤痕', '高挑', '嬌小', '聲音低沉', '聲音清脆', '喜歡穿黑衣', '喜歡穿白衣'];
-                const genericHobbies = ['閱讀', '寫作', '繪畫', '音樂', '運動', '烹飪', '旅行', '研究', '收集'];
+                const genericIdentities = ['旅人', '間諜', '醫師', '農夫', '航海士', '鍊金術師', '學者', '工匠', '僧侶', '詩人','醫者','學生', '老師', '藝術家', '科學家', '冒險者', '商人', '傭兵', '王族', '平民'];
+                const genericPersonalities = ['樂觀', '多疑', '固執', '隨和', '敏感', '堅毅', '風趣', '孤傲', '謹慎', '果斷','開朗', '內向', '神秘', '熱情', '冷靜', '傲嬌', '溫柔', '霸道'];
+                const genericTraits = ['捲髮', '雀斑', '左撇子', '體格壯碩', '步伐輕盈', '嗓音沙啞', '常帶手套', '喜歡戴帽子', '笑容燦爛', '眼神銳利','眼鏡', '長髮', '疤痕', '高挑', '嬌小', '聲音低沉', '聲音清脆', '喜歡穿黑衣', '喜歡穿白衣','頭腦靈活', '記憶力超群', '身手敏捷', '體力驚人', '善於觀察', '口才一流', '意志堅強', '擅長隱匿', '直覺敏銳'];
+                const genericHobbies = ['閱讀', '寫作', '繪畫', '音樂', '運動', '烹飪', '旅行', '研究', '收集','釣魚', '園藝', '舞蹈', '雕刻', '下棋', '占卜', '書法', '茶道', '觀星', '攝影'];
 
                 char.identity = getRandomItem(genericIdentities);
                 char.personality = getRandomItem(genericPersonalities);
@@ -978,8 +978,9 @@
                 return; // End turn flow
             }
 
-            // 2. Max cards played (4 rounds completed)
-            if (game.totalCardsPlayedInGame === game.totalPlayerCount * game.maxCardsPerGamePerPlayer) {
+            // 2. Max cards played (4 rounds completed by each player)
+            const allPlayersPlayedMaxCards = game.players.every(player => player.cardsPlayedInGame >= game.maxCardsPerGamePerPlayer);
+            if (allPlayersPlayedMaxCards) {
                 game.isGameOver = true;
                 const systemMessageElement = document.createElement('p');
                 systemMessageElement.classList.add('text-pink-600', 'font-bold', 'mt-2');
@@ -999,14 +1000,27 @@
 
             const currentPlayer = game.players[game.currentPlayerIndex];
 
-            // AI must have cards to play
-            if (currentPlayer.hand.length === 0) {
+            // AI must have cards to play and not have played its max cards for the game
+            if (currentPlayer.hand.length === 0 || currentPlayer.cardsPlayedInGame >= game.maxCardsPerGamePerPlayer) {
                 const systemMessageElement = document.createElement('p');
                 systemMessageElement.classList.add('text-pink-600', 'font-bold', 'mt-2');
-                systemMessageElement.textContent = `【系統】AI 玩家 ${currentPlayer.name} 手牌已空，跳過回合。`;
+                systemMessageElement.textContent = `【系統】AI 玩家 ${currentPlayer.name} 手牌已空或已出滿牌，跳過回合。`;
                 storyDisplay.appendChild(systemMessageElement);
                 storyDisplay.scrollTop = storyDisplay.scrollHeight;
-                switchToNextPlayer(); // Skip AI if no cards
+                
+                // If AI can't play, check if game is over (e.g. all players ran out of cards)
+                const allPlayersDone = game.players.every(player => player.cardsPlayedInGame >= game.maxCardsPerGamePerPlayer || player.hand.length === 0);
+                if (allPlayersDone) {
+                     game.isGameOver = true;
+                     const sysMsg = document.createElement('p');
+                     sysMsg.classList.add('text-pink-600', 'font-bold', 'mt-2');
+                     sysMsg.textContent = `【系統】所有玩家都無法出牌，遊戲結束。`;
+                     storyDisplay.appendChild(sysMsg);
+                     storyDisplay.scrollTop = storyDisplay.scrollHeight;
+                     await generateFinalStory();
+                } else {
+                    switchToNextPlayer(); // Move to next player
+                }
                 return;
             }
 
@@ -1051,19 +1065,102 @@
 
             // If we reached here, no eligible player found. This should only happen if game is over by max cards played or all players ran out of cards early.
             console.log("No eligible player found, checking game over conditions.");
-            if (game.totalCardsPlayedInGame < game.totalPlayerCount * game.maxCardsPerGamePerPlayer) {
-                 // All players ran out of cards before max rounds, so end the game prematurely.
-                game.isGameOver = true;
-                const systemMessageElement = document.createElement('p');
-                systemMessageElement.classList.add('text-pink-600', 'font-bold', 'mt-2');
-                systemMessageElement.textContent = `【系統】所有玩家手牌已空，遊戲提前結束。`;
-                storyDisplay.appendChild(systemMessageElement);
-                storyDisplay.scrollTop = storyDisplay.scrollHeight;
-                generateFinalStory();
-            } else if (!game.isGameOver) {
-                // This state should not be reachable if game over conditions are handled correctly
-                console.error("Unexpected state: No eligible player but game not marked as over.");
-                showMessage("遊戲狀態異常，請重新開始。",'error');
+            if (!game.isGameOver) { // Only trigger game over if not already set
+                // Check if all players ran out of cards before max rounds, or if all have played max cards
+                const allPlayersRanOutOfCards = game.players.every(player => player.hand.length === 0 || player.cardsPlayedInGame >= game.maxCardsPerGamePerPlayer);
+                const allPlayersPlayedMaxCards = game.players.every(player => player.cardsPlayedInGame >= game.maxCardsPerGamePerPlayer);
+
+                if (allPlayersRanOutOfCards) {
+                    game.isGameOver = true;
+                    const systemMessageElement = document.createElement('p');
+                    systemMessageElement.classList.add('text-pink-600', 'font-bold', 'mt-2');
+                    systemMessageElement.textContent = `【系統】所有玩家手牌已空或已出滿牌，遊戲結束。`;
+                    storyDisplay.appendChild(systemMessageElement);
+                    storyDisplay.scrollTop = storyDisplay.scrollHeight;
+                    generateFinalStory();
+                } else if (allPlayersPlayedMaxCards) {
+                    game.isGameOver = true;
+                    const systemMessageElement = document.createElement('p');
+                    systemMessageElement.classList.add('text-pink-600', 'font-bold', 'mt-2');
+                    systemMessageElement.textContent = `【系統】所有玩家已完成 ${game.maxCardsPerGamePerPlayer} 回合的出牌！遊戲結束。`;
+                    storyDisplay.appendChild(systemMessageElement);
+                    storyDisplay.scrollTop = storyDisplay.scrollHeight;
+                    generateFinalStory();
+                } else {
+                    console.error("Unexpected state: No eligible player and game over condition not met.");
+                    showMessage("遊戲狀態異常，請重新開始。",'error');
+                }
+            }
+        }
+
+
+        async function evaluatePlayerGoalWithAI(player, allPlayerActionsText, finalOverallStory) {
+            const { gong, shou, relationship, worldview, characters } = game;
+            const gongName = gong ? gong.name : '攻主角';
+            const shouName = shou ? shou.name : '受主角';
+            const allProtagonistsSummary = characters.map(c => c.name).join('；');
+
+            const systemPrompt = `你是一位嚴謹的遊戲裁判，將根據遊戲中的所有玩家行動歷史和最終生成的完整故事，判斷一位玩家的個人目標是否達成。
+            請根據以下背景和遊戲記錄進行判斷：
+            遊戲名稱: 大家一起 Making Love
+            世界觀: ${worldview}
+            初始關係: ${relationship}
+            故事主角們: ${allProtagonistsSummary}
+            核心攻角色: ${gongName}
+            核心受角色: ${shouName}
+            玩家目標: 「${player.goal}」
+
+            你的任務是：
+            1. 分析玩家的目標，並對比「遊戲中所有玩家的行動歷史」和「最終生成的完整故事」來判斷目標是否達成。
+            2. 以 JSON 格式回應，包含 'achieved' (布林值 true/false) 和 'explanation' (約 50 字的簡要理由)。
+            3. 請用繁體中文撰寫。
+            例如：{"achieved": true, "explanation": "玩家的目標是讓主角告白，最終故事確實描述了告白情節。"}
+            例如：{"achieved": false, "explanation": "玩家的目標是引入新角色，但最終故事中並未出現新角色。"}
+            `;
+
+            const userQuery = `遊戲中所有玩家的行動歷史：\n${allPlayerActionsText}\n\n最終生成的完整故事：\n${finalOverallStory}\n\n請判斷玩家 ${player.name} 的目標「${player.goal}」是否達成，並給出理由。`;
+
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            "achieved": { "type": "BOOLEAN" },
+                            "explanation": { "type": "STRING" }
+                        },
+                        "propertyOrdering": ["achieved", "explanation"]
+                    }
+                }
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`API error: ${response.status} - ${errorData.error.message}`);
+                }
+
+                const result = await response.json();
+                const candidate = result.candidates?.[0];
+
+                if (candidate && candidate.content?.parts?.[0]?.text) {
+                    return JSON.parse(candidate.content.parts[0].text);
+                } else {
+                    throw new Error("API response format unexpected or content missing.");
+                }
+            } catch (error) {
+                console.error(`Error evaluating goal for ${player.name}:`, error);
+                return { achieved: false, explanation: `AI 判斷目標時發生錯誤：${error.message}。無法判斷。` };
             }
         }
 
@@ -1114,6 +1211,7 @@
 
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
 
+            // Define payload here
             const payload = {
                 contents: [{ parts: [{ text: userQuery }] }],
                 systemInstruction: { parts: [{ text: systemPrompt }] },
@@ -1145,7 +1243,6 @@
                 showMessage(`AI 最終故事生成失敗：${error.message}。將使用預設結局概述。`, 'error');
                 finalNarration = `【AI 助手】由於AI服務問題，無法生成詳細結局。但根據所有玩家的行動，我們的故事在一個${game.endingCardPlayed ? game.endingCardPlayed.name : '充滿懸念'}的時刻結束了。`;
             } finally {
-                hideLoading();
                 // Append final narration to storyDisplay
                 const finalNarrationElement = document.createElement('p');
                 finalNarrationElement.classList.add('font-bold', 'text-purple-700', 'mt-6', 'text-lg');
@@ -1156,6 +1253,29 @@
                 storyDisplay.appendChild(finalStoryTextElement);
                 storyDisplay.scrollTop = storyDisplay.scrollHeight;
 
+                // --- Evaluate goals for goal-oriented mode ---
+                if (game.gameMode === 'goal-oriented') {
+                    const goalResultsHeader = document.createElement('p');
+                    goalResultsHeader.classList.add('font-bold', 'text-pink-700', 'mt-6', 'text-lg');
+                    goalResultsHeader.textContent = `【玩家目標達成判定】`;
+                    storyDisplay.appendChild(goalResultsHeader);
+
+                    const humanPlayers = game.players.filter(p => !p.isAI);
+                    for (const player of humanPlayers) {
+                        showLoading(); // Show loading for each goal evaluation
+                        const goalResult = await evaluatePlayerGoalWithAI(player, allPlayerActionsText, finalNarration);
+                        hideLoading(); // Hide loading after each evaluation
+
+                        const resultElement = document.createElement('p');
+                        resultElement.classList.add('text-gray-800', 'ml-4', 'mt-2');
+                        const status = goalResult.achieved ? '達成 ✅' : '未達成 ❌';
+                        resultElement.innerHTML = `**${player.name} 的目標：「${player.goal}」：${status}**<br/>理由：${goalResult.explanation}`;
+                        storyDisplay.appendChild(resultElement);
+                    }
+                    storyDisplay.scrollTop = storyDisplay.scrollHeight;
+                }
+
+                hideLoading(); // Hide overall loading
                 displayFinalGameRecord(); // Final game record now uses the complete storyDisplay
                 gamePlaySection.classList.add('hidden');
                 gameEndSection.classList.remove('hidden');
@@ -1188,11 +1308,8 @@
             recordHtml += `</ul>`;
 
             if (game.gameMode === 'goal-oriented') {
-                recordHtml += `<h3 class="text-xl font-semibold mb-4 text-green-800">玩家目標</h3><ul class="list-disc list-inside mb-6">`;
-                game.players.filter(p => !p.isAI).forEach(player => {
-                    recordHtml += `<li>${player.name}：${player.goal}</li>`;
-                });
-                recordHtml += `</ul>`;
+                // Goal results are now appended directly to storyDisplay within generateFinalStory,
+                // so we just rely on storyDisplay.innerHTML here.
             }
 
             recordHtml += `
