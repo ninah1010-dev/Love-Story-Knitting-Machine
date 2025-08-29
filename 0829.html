@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大家一起 Making Love 線上模擬器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fce4ec; /* Light pink background */
+            color: #4a4a4a;
+        }
+        .card {
+            background-color: #fff;
+            border-radius: 12px;
+            padding: 1rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease-in-out;
+            cursor: pointer;
+            word-break: break-all; /* 防止卡片內容溢出 */
+            min-width: 120px;
+            height: 100%; /* Ensure cards in a flex container take up full height */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between; /* Space out content in cards */
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .card.selected {
+            border: 3px solid #d81b60; /* Highlight for selected card */
+            box-shadow: 0 0 15px rgba(216, 27, 96, 0.5);
+        }
+        .card-type-攻受 { background-color: #ffe0b2; } /* Orange-ish */
+        .card-type-關係 { background-color: #c8e6c9; } /* Green-ish */
+        .card-type-詞句 { background-color: #e3f2fd; } /* Blue-ish */
+        .card-type-特殊 { background-color: #ffccbc; } /* Lighter Orange */
+        .card-type-結局 { background-color: #ffcdd2; } /* Red-ish */
+        .card-type-character { background-color: #f0f4c3; } /* Light yellow-green for characters */
+
+
+        .story-panel {
+            min-height: 200px;
+            max-height: 400px;
+            overflow-y: auto;
+            background-color: #fff;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+            line-height: 1.8;
+        }
+
+        .action-button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .action-button:hover {
+            transform: translateY(-2px);
+        }
+        .message-box {
+            background-color: #fff3e0;
+            color: #ff9800;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border: 1px solid #ffcc80;
+            display: none; /* Hidden by default */
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            font-size: 1.5rem;
+            color: #d81b60;
+            font-weight: bold;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .flex-col-mobile {
+                flex-direction: column;
+            }
+            .hand-card-container {
+                overflow-x: auto;
+                white-space: nowrap;
+                padding-bottom: 1rem;
+            }
+            .hand-card-container .card {
+                display: inline-block;
+                margin-right: 0.5rem;
+                vertical-align: top;
+            }
+            .story-panel {
+                max-height: 250px;
+            }
+            .character-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container" class="max-w-7xl mx-auto bg-pink-50 p-8 rounded-2xl shadow-xl">
+        <h1 class="text-4xl font-bold text-center mb-8 text-pink-700">《大家一起 Making Love》線上模擬器</h1>
+
+        <div id="message-area" class="message-box"></div>
+        <div id="loading-overlay" class="loading-overlay hidden">AI 正在撰寫故事... 請稍候...</div>
+
+
+        <!-- Start Page: 遊戲設定區塊 -->
+        <div id="start-page" class="mb-8 p-6 bg-white rounded-xl shadow-md">
+            <h2 class="text-2xl font-semibold mb-4 text-pink-600">遊戲設定與準備</h2>
+            <div class="mb-4">
+                <label for="human-player-count" class="block text-lg font-medium text-gray-700 mb-2">請選擇實際玩家人數 (1-5人):</label>
+                <input type="number" id="human-player-count" min="1" max="5" value="1" class="w-24 p-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500">
+                <p class="text-sm text-gray-500 mt-1">若 1 人遊玩，AI 將扮演另一位玩家。若 2 人以上，則無 AI 玩家。</p>
+            </div>
+            <div class="mb-4">
+                <label for="protagonist-count" class="block text-lg font-medium text-gray-700 mb-2">請選擇故事主角人數 (2-4人):</label>
+                <input type="number" id="protagonist-count" min="2" max="4" value="2" class="w-24 p-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500">
+                <p class="text-sm text-gray-500 mt-1">玩家將為這些主角編寫故事。</p>
+            </div>
+            <div class="mb-6">
+                <label for="game-mode" class="block text-lg font-medium text-gray-700 mb-2">請選擇遊戲模式:</label>
+                <select id="game-mode" class="w-full md:w-1/2 p-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500">
+                    <option value="collaborative">合作完成故事</option>
+                    <option value="goal-oriented">達成自己的目標劇情</option>
+                </select>
+            </div>
+            <button id="next-to-character-setup-button" class="action-button bg-pink-500 text-white hover:bg-pink-600">進入角色設定</button>
+        </div>
+
+        <!-- Character Setup Page: 角色與世界觀設定區塊 -->
+        <div id="character-setup-section" class="hidden mb-8 p-6 bg-white rounded-xl shadow-md">
+            <h2 class="text-2xl font-semibold mb-4 text-pink-600">設定故事角色與世界觀</h2>
+
+            <!-- 世界觀與關係設定 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label for="worldview-input" class="block text-lg font-medium text-gray-700 mb-2">世界觀:</label>
+                    <input type="text" id="worldview-input" class="w-full p-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500" placeholder="例如：科幻都市、奇幻學院">
+                </div>
+                <div>
+                    <label for="relationship-input" class="block text-lg font-medium text-gray-700 mb-2">初始關係:</label>
+                    <input type="text" id="relationship-input" class="w-full p-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500" placeholder="例如：青梅竹馬、宿敵">
+                </div>
+            </div>
+            <button id="generate-world-button" class="action-button bg-blue-500 text-white hover:bg-blue-600 mb-6">隨機生成世界觀與關係</button>
+
+
+            <h3 class="text-xl font-semibold mb-4 text-pink-600">故事主角設定 (共 <span id="num-protagonists-display"></span> 位)</h3>
+            <div id="characters-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <!-- 角色卡將動態載入這裡 -->
+            </div>
+            <button id="generate-characters-button" class="action-button bg-purple-500 text-white hover:bg-purple-600 mr-4">隨機生成主角</button>
+            <button id="start-story-button" class="action-button bg-pink-500 text-white hover:bg-pink-600">儲存設定並開始故事</button>
+        </div>
+
+        <!-- 遊戲主體區塊 -->
+        <div id="game-play-section" class="hidden">
+            <!-- 故事設定總覽 -->
+            <div class="mb-8 p-6 bg-white rounded-xl shadow-md">
+                <h2 class="text-2xl font-semibold mb-4 text-pink-600">故事設定總覽</h2>
+                <p class="text-lg font-bold mb-2">世界觀: <span id="current-worldview"></span></p>
+                <p class="text-lg font-bold mb-4">初始關係: <span id="current-relationship"></span></p>
+                <h3 class="text-xl font-semibold mb-3 text-pink-600">登場主角:</h3>
+                <div id="active-characters-display" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- 活躍角色將動態載入這裡 -->
+                </div>
+            </div>
+
+            <!-- 故事敘述區塊 -->
+            <div class="mb-8 p-6 bg-purple-50 rounded-xl shadow-md">
+                <h2 class="text-2xl font-semibold mb-4 text-purple-700">故事發展</h2>
+                <div id="story-display" class="story-panel border-2 border-purple-200 text-purple-900">
+                    <p class="text-center text-gray-500 italic">遊戲開始後，故事將從這裡展開...</p>
+                </div>
+            </div>
+
+            <!-- 當前回合資訊與玩家操作區塊 -->
+            <div class="mb-8 p-6 bg-white rounded-xl shadow-md">
+                <h2 class="text-2xl font-semibold mb-4 text-pink-600"><span id="current-player-name"></span> 的回合</h2>
+                <p id="player-goal-display" class="text-lg text-gray-700 mb-4 hidden"></p> <!-- For goal-oriented mode -->
+                <p id="game-progress-display" class="text-base text-gray-600 mb-4">
+                    已出牌數：<span id="total-cards-played-display">0</span> / <span id="max-game-cards-display">0</span>
+                </p>
+
+
+                <!-- 玩家手牌區 -->
+                <div class="mb-6">
+                    <p class="text-lg font-medium text-gray-700 mb-3">您的手牌：</p>
+                    <div id="player-hand-container" class="flex flex-wrap gap-4 hand-card-container">
+                        <!-- 手牌將動態載入這裡 -->
+                    </div>
+                </div>
+
+                <!-- 出牌與劇情描述 -->
+                <div id="play-card-section" class="mb-6">
+                    <p class="text-lg font-medium text-gray-700 mb-3">選擇一張手牌並描述劇情：</p>
+                    <textarea id="player-description" class="w-full p-3 border border-gray-300 rounded-md mb-4 focus:ring-pink-500 focus:border-pink-500" rows="3" placeholder="請描述這張牌所代表的劇情段落（選填，語音輸入亦可）..."></textarea>
+                    <button id="play-card-button" class="action-button bg-pink-500 text-white hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled>打出此牌</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 遊戲結束區塊 -->
+        <div id="game-end-section" class="hidden p-8 bg-green-50 rounded-2xl shadow-xl mt-8">
+            <h2 class="text-3xl font-bold text-center mb-6 text-green-700">故事結束！</h2>
+            <div id="final-story-summary" class="story-panel border-2 border-green-200 text-green-900 mb-6"></div>
+            <p class="text-lg text-center text-gray-700">感謝您的遊玩！以下是完整的遊戲記錄，您可以複製保存。</p>
+            <button id="restart-game-button" class="action-button bg-pink-500 text-white hover:bg-pink-600 mt-6 mx-auto block">重新開始遊戲</button>
+        </div>
+    </div>
+
+    <script>
+        // Gemini API Key
+        const API_KEY = "AIzaSyCEIsgA8IDtFfJX1sNNv48xnm1TTYKInm4"; // Provided by the user
+
+        // 遊戲數據與狀態
+        let game = {
+            humanPlayerCount: 0,    // 實際人類玩家數量 (1-5)
+            totalPlayerCount: 0,    // 實際參與回合的玩家總數 (含 AI, 1人遊玩時為2, 2人以上則等於humanPlayerCount)
+            protagonistCount: 0,    // 故事主角數量 (2-4)
+            gameMode: 'collaborative', // 'collaborative' or 'goal-oriented'
+            players: [],            // 參與回合的玩家陣列 (human + potential AI)
+            characters: [],         // 故事主角陣列
+            currentPlayerIndex: 0,
+            gong: null,             // 攻主角的引用
+            shou: null,             // 受主角的引用
+            worldview: null,
+            relationship: null,
+            mainDeck: [],
+            discardPile: [], // Cards that have been played from hands
+            isEndingPhase: false, // This flag will be set true when an ending card is played
+            selectedCard: null,
+            
+            allPlayerActionsHistory: [], // Stores ALL { playerIndex, playerName, card, description, isAI } throughout the game
+            totalCardsPlayedInGame: 0, // Counts total individual cards played by all players in the entire game
+            maxCardsPerGamePerPlayer: 4, // Max cards each player should play in the entire game before game ends due to card count. This will mean game ends after totalPlayerCount * 4 turns.
+            endingCardPlayed: null, // Stores the ending card that was played, if any
+            isGameOver: false, // New flag for game state
+
+            cards: {
+                gongShou: [
+                    { name: '溫柔後輩', type: '攻' }, { name: '強勢前輩', type: '攻' }, { name: '冷靜老師', type: '攻' }, { name: '霸道總裁', type: '攻' }, { name: '陽光竹馬', type: '攻' },
+                    { name: '傲嬌學生', type: '受' }, { name: '神秘藝術家', type: '受' }, { name: '青梅竹馬', type: '受' }, { name: '熱情學弟', type: '受' }, { name: '高冷學者', type: '受' }
+                ],
+                relationships: [
+                    '秘密時間', '同居生活', '意外邂逅', '師生戀', '職場戀情',
+                    '異世界相遇', '青梅竹馬', '網路情緣', '穿越時空', '契約關係',
+                    '竹馬之交', '命中註定', '互相扶持', '愛恨交織', '跨越藩籬'
+                ],
+                worldviews: [
+                    '科幻都市', '奇幻學院', '現代校園', '古風江湖', '末日生存',
+                    '架空歷史', '蒸汽朋克', '魔幻森林', '豪華郵輪', '神秘實驗室'
+                ],
+                phrases: [
+                    { name: '放學後的教室' }, { name: '心跳加速' }, { name: '告白' }, { name: '秘密雨夜' }, { name: '紅茶香' },
+                    { name: '擦身而過' }, { name: '無心之言' }, { name: '臉紅心跳' }, { name: '溫暖的眼神' }, { name: '意外的擁抱' },
+                    { name: '獨自等待' }, { name: '街角咖啡店' }, { name: '徹夜長談' }, { name: '共同的秘密' }, { name: '指尖的溫度' },
+                    { name: '意想不到的禮物' }, { name: '微醺之夜' }, { name: '無言的陪伴' }, { name: '一線希望' }, { name: '迷失的眼神' },
+                    { name: '突如其來的邀約' }, { name: '難以言喻的衝動' }, { name: '背影' }, { name: '耳邊細語' }, { name: '微妙的距離' },
+                    { name: '月光下的誓言' }, { name: '不眠之夜' }, { name: '溫柔的觸碰' }, { name: '無法言說的秘密' }, { name: '命運的玩笑' }
+                ],
+                special: [
+                    { name: '攻受逆轉卡' }, { name: '劇情急轉直下' }, { name: '情感爆發' }, { name: '危機降臨' }, { name: '突如其來的吻' },
+                    { name: '誤會叢生' }, { name: '第三者出現' }, { name: '意外的旅行' }, { name: '命運的捉弄' }, { name: '時間倒轉' },
+                    { name: '記憶碎片' }, { name: '意料之外的盟友' }, { name: '宿命的對決' }, { name: '交換身體' }, { name: '遺失的信物' }
+                ],
+                endings: [
+                    { name: 'HAPPY END', description: '在櫻花樹下，他們告白，擁抱幸福的未來。' },
+                    { name: 'BAD END', description: '誤解與分離讓兩人漸行漸遠，徒留遺憾。' },
+                    { name: 'OPEN END', description: '故事仍在繼續，他們的未來充滿無限可能。' }
+                ]
+            },
+            characterData: {
+                genders: ['男性', '女性'],
+            }
+        };
+
+        // DOM 元素
+        const messageArea = document.getElementById('message-area');
+        const loadingOverlay = document.getElementById('loading-overlay');
+
+        // Start Page Elements
+        const startPage = document.getElementById('start-page');
+        const humanPlayerCountInput = document.getElementById('human-player-count');
+        const protagonistCountInput = document.getElementById('protagonist-count');
+        const gameModeSelect = document.getElementById('game-mode');
+        const nextToCharacterSetupButton = document.getElementById('next-to-character-setup-button');
+
+        // Character Setup Page Elements
+        const characterSetupSection = document.getElementById('character-setup-section');
+        const numProtagonistsDisplay = document.getElementById('num-protagonists-display');
+        const charactersContainer = document.getElementById('characters-container');
+        const worldviewInput = document.getElementById('worldview-input');
+        const relationshipInput = document.getElementById('relationship-input');
+        const generateWorldButton = document.getElementById('generate-world-button');
+        const generateCharactersButton = document.getElementById('generate-characters-button');
+        const startStoryButton = document.getElementById('start-story-button');
+
+        // Game Play Section Elements
+        const gamePlaySection = document.getElementById('game-play-section');
+        const currentWorldviewDisplay = document.getElementById('current-worldview');
+        const currentRelationshipDisplay = document.getElementById('current-relationship'); // Fixed document.getElementById typo
+        const activeCharactersDisplay = document.getElementById('active-characters-display');
+        const storyDisplay = document.getElementById('story-display');
+        const currentPlayerNameDisplay = document.getElementById('current-player-name');
+        const playerGoalDisplay = document.getElementById('player-goal-display');
+        const totalCardsPlayedDisplay = document.getElementById('total-cards-played-display'); // Changed ID
+        const maxGameCardsDisplay = document.getElementById('max-game-cards-display'); // New ID for total cards possible
+        const playerHandContainer = document.getElementById('player-hand-container');
+        const playerDescriptionInput = document.getElementById('player-description');
+        const playCardButton = document.getElementById('play-card-button');
+
+        // Game End Section Elements
+        const gameEndSection = document.getElementById('game-end-section');
+        const finalStorySummaryDisplay = document.getElementById('final-story-summary');
+        const restartGameButton = document.getElementById('restart-game-button');
+
+        // Event Listeners
+        nextToCharacterSetupButton.addEventListener('click', setupCharacterPage);
+        generateWorldButton.addEventListener('click', generateWorldAndRelationshipWithAI);
+        generateCharactersButton.addEventListener('click', generateCharacters);
+        startStoryButton.addEventListener('click', initializeGame);
+        playCardButton.addEventListener('click', () => playOneCard(game.selectedCard));
+        restartGameButton.addEventListener('click', () => location.reload());
+
+        // Helper functions
+        function showMessage(message, type = 'info') {
+            messageArea.textContent = message;
+            messageArea.style.display = 'block';
+            messageArea.className = 'message-box'; // Reset class
+            if (type === 'error') {
+                messageArea.classList.add('bg-red-100', 'text-red-700', 'border-red-300');
+            } else if (type === 'success') {
+                messageArea.classList.add('bg-green-100', 'text-green-700', 'border-green-300');
+            }
+            setTimeout(() => {
+                messageArea.style.display = 'none';
+            }, 5000);
+        }
+
+        function showLoading() {
+            loadingOverlay.classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            loadingOverlay.classList.add('hidden');
+        }
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function getRandomItem(array) {
+            return array[Math.floor(Math.random() * array.length)];
+        }
+
+        // --- Game Flow Functions ---
+
+        function setupCharacterPage() {
+            game.humanPlayerCount = parseInt(humanPlayerCountInput.value, 10);
+            game.protagonistCount = parseInt(protagonistCountInput.value, 10);
+            game.gameMode = gameModeSelect.value;
+
+            if (game.humanPlayerCount < 1 || game.humanPlayerCount > 5) {
+                showMessage('實際玩家人數必須在 1 到 5 之間！', 'error');
+                return;
+            }
+            if (game.protagonistCount < 2 || game.protagonistCount > 4) {
+                showMessage('故事主角人數必須在 2 到 4 之間！', 'error');
+                return;
+            }
+
+            if (game.humanPlayerCount === 1) {
+                game.totalPlayerCount = 2; // 1 human + 1 AI
+            } else {
+                game.totalPlayerCount = game.humanPlayerCount; // All human players, no AI
+            }
+
+            game.players = [];
+            for (let i = 0; i < game.humanPlayerCount; i++) {
+                game.players.push({
+                    id: i + 1,
+                    name: `玩家 ${i + 1}`,
+                    isAI: false,
+                    hand: [],
+                    goal: '',
+                    cardsPlayedInGame: 0 // Cards played by THIS player in the entire game
+                });
+            }
+            if (game.humanPlayerCount === 1) {
+                game.players.push({
+                    id: 2,
+                    name: '玩家 2 (AI)',
+                    isAI: true,
+                    hand: [],
+                    goal: '',
+                    cardsPlayedInGame: 0
+                });
+            }
+
+            game.characters = Array.from({ length: game.protagonistCount }, (_, i) => ({
+                id: i,
+                name: '', gender: '', identity: '', personality: '', traits: '', hobbies: '', brief: '',
+                isGong: false, isShou: false
+            }));
+
+            startPage.classList.add('hidden');
+            characterSetupSection.classList.remove('hidden');
+            numProtagonistsDisplay.textContent = game.protagonistCount;
+            renderCharacterInputs();
+            generateWorldAndRelationshipWithAI();
+        }
+
+        async function generateWorldAndRelationshipWithAI() {
+            showLoading();
+            const systemPrompt = `你是一位經驗豐富的愛情故事創作者，請為一個多元愛情故事遊戲《大家一起 Making Love》生成一個引人入勝的「世界觀」和「初始關係」。
+            世界觀應具體且富有想像力 (例如：科幻都市、奇幻學院、古風江湖等)。
+            初始關係應能引發有趣的互動 (例如：青梅竹馬、宿敵、契約關係、異世界相遇等)。
+
+            請以 JSON 格式回應，包含 'worldview' 和 'relationship' 兩個字段，例如：
+            {"worldview": "蒸汽朋克工業城", "relationship": "上下屬的秘密戀情"}
+            請注意使用繁體中文生成。
+            `;
+            const userQuery = `請生成一個世界觀和初始關係。`;
+
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            "worldview": { "type": "STRING" },
+                            "relationship": { "type": "STRING" }
+                        },
+                        "propertyOrdering": ["worldview", "relationship"]
+                    }
+                }
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`API error: ${response.status} - ${errorData.error.message}`);
+                }
+
+                const result = await response.json();
+                const candidate = result.candidates?.[0];
+
+                if (candidate && candidate.content?.parts?.[0]?.text) {
+                    const generated = JSON.parse(candidate.content.parts[0].text);
+                    worldviewInput.value = generated.worldview;
+                    relationshipInput.value = generated.relationship;
+                } else {
+                    throw new Error("API response format unexpected or content missing.");
+                }
+            } catch (error) {
+                console.error("Error generating worldview and relationship with AI:", error);
+                showMessage(`AI 生成世界觀與關係失敗：${error.message}。將使用預設隨機選項。`, 'error');
+                const defaultWorldviews = ['科幻都市', '奇幻學院', '現代校園', '古風江湖', '末日生存'];
+                const defaultRelationships = ['青梅竹馬', '宿敵', '師生戀', '意外邂逅', '契約關係'];
+                worldviewInput.value = getRandomItem(defaultWorldviews);
+                relationshipInput.value = getRandomItem(defaultRelationships);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function renderCharacterInputs() {
+            charactersContainer.innerHTML = '';
+            game.characters.forEach((char, index) => {
+                const charCard = document.createElement('div');
+                charCard.id = `character-${index}-card`;
+                charCard.classList.add('card', 'card-type-character', 'p-4', 'flex-shrink-0', 'flex-col', 'gap-2');
+                charCard.innerHTML = `
+                    <h4 class="text-lg font-bold mb-2">主角 ${index + 1}</h4>
+                    <div class="flex flex-col gap-2">
+                        <label>名字: <input type="text" id="char-${index}-name" value="${char.name}" class="w-full p-1 border rounded-md"></label>
+                        <label>性別:
+                            <select id="char-${index}-gender" class="w-full p-1 border rounded-md">
+                                <option value="男性" ${char.gender === '男性' ? 'selected' : ''}>男性</option>
+                                <option value="女性" ${char.gender === '女性' ? 'selected' : ''}>女性</option>
+                            </select>
+                        </label>
+                        <label>身分: <input type="text" id="char-${index}-identity" value="${char.identity}" class="w-full p-1 border rounded-md"></label>
+                        <label>性格: <input type="text" id="char-${index}-personality" value="${char.personality}" class="w-full p-1 border rounded-md"></label>
+                        <label>特點: <input type="text" id="char-${index}-traits" value="${char.traits}" class="w-full p-1 border rounded-md"></label>
+                        <label>喜好: <input type="text" id="char-${index}-hobbies" value="${char.hobbies}" class="w-full p-1 border rounded-md"></label>
+                        <label>人物簡介 (約100字): <textarea id="char-${index}-brief" class="w-full p-1 border rounded-md" rows="5">${char.brief}</textarea></label>
+                        <div class="flex items-center mt-2">
+                            <input type="radio" id="char-${index}-isGong" name="role-${index}" value="gong" ${char.isGong ? 'checked' : ''}>
+                            <label for="char-${index}-isGong" class="ml-1 mr-3 text-pink-700 font-semibold">攻</label>
+                            <input type="radio" id="char-${index}-isShou" name="role-${index}" value="shou" ${char.isShou ? 'checked' : ''}>
+                            <label for="char-${index}-isShou" class="ml-1 text-pink-700 font-semibold">受</label>
+                            <input type="radio" id="char-${index}-noRole" name="role-${index}" value="none" ${!char.isGong && !char.isShou ? 'checked' : ''}>
+                            <label for="char-${index}-noRole" class="ml-1 text-gray-700">無</label>
+                        </div>
+                    </div>
+                `;
+                charactersContainer.appendChild(charCard);
+            });
+
+            document.querySelectorAll('input[name^="role-"]').forEach(radio => {
+                radio.addEventListener('change', (event) => {
+                    const charIndex = parseInt(event.target.id.split('-')[1]);
+                    const selectedRole = event.target.value;
+
+                    game.characters.forEach((char, i) => {
+                        if (char.isGong && i !== charIndex) {
+                            char.isGong = false;
+                            document.getElementById(`char-${i}-isGong`).checked = false;
+                            document.getElementById(`char-${i}-noRole`).checked = true;
+                        }
+                        if (char.isShou && i !== charIndex) {
+                            char.isShou = false;
+                            document.getElementById(`char-${i}-isShou`).checked = false;
+                            document.getElementById(`char-${i}-noRole`).checked = true;
+                        }
+                    });
+
+                    if (selectedRole === 'gong') {
+                        game.characters[charIndex].isGong = true;
+                        game.characters[charIndex].isShou = false;
+                        game.gong = game.characters[charIndex];
+                        if (game.shou === game.characters[charIndex]) game.shou = null;
+                    } else if (selectedRole === 'shou') {
+                        game.characters[charIndex].isShou = true;
+                        game.characters[charIndex].isGong = false;
+                        game.shou = game.characters[charIndex];
+                        if (game.gong === game.characters[charIndex]) game.gong = null;
+                    } else {
+                        game.characters[charIndex].isGong = false;
+                        game.characters[charIndex].isShou = false;
+                        if (game.gong === game.characters[charIndex]) game.gong = null;
+                        if (game.shou === game.characters[charIndex]) game.shou = null;
+                    }
+
+                    game.characters.forEach((char, i) => {
+                        document.getElementById(`char-${i}-isGong`).checked = char.isGong;
+                        document.getElementById(`char-${i}-isShou`).checked = char.isShou;
+                        document.getElementById(`char-${i}-noRole`).checked = !char.isGong && !char.isShou;
+                    });
+                });
+            });
+        }
+
+        async function generateCharacters() {
+            showLoading();
+            const currentWorldview = worldviewInput.value;
+
+            for (let index = 0; index < game.characters.length; index++) {
+                const char = game.characters[index];
+                
+                char.gender = getRandomItem(game.characterData.genders);
+                const genericIdentities = ['學生', '老師', '藝術家', '科學家', '冒險者', '商人', '傭兵', '王族', '平民'];
+                const genericPersonalities = ['開朗', '內向', '神秘', '熱情', '冷靜', '傲嬌', '溫柔', '霸道'];
+                const genericTraits = ['眼鏡', '長髮', '疤痕', '高挑', '嬌小', '聲音低沉', '聲音清脆', '喜歡穿黑衣', '喜歡穿白衣'];
+                const genericHobbies = ['閱讀', '寫作', '繪畫', '音樂', '運動', '烹飪', '旅行', '研究', '收集'];
+
+                char.identity = getRandomItem(genericIdentities);
+                char.personality = getRandomItem(genericPersonalities);
+                char.traits = getRandomItem(genericTraits);
+                char.hobbies = getRandomItem(genericHobbies);
+
+                try {
+                    const aiDetails = await generateCharacterDetailsWithAI(char, currentWorldview);
+                    char.name = aiDetails.name;
+                    char.brief = aiDetails.brief;
+                } catch (error) {
+                    console.error(`Error generating AI details for character ${index}:`, error);
+                    showMessage(`AI 生成角色 ${index + 1} 的名字和簡介失敗：${error.message}。`, 'error');
+                    char.name = getRandomItem(['小明', '小華', '阿倫', '莉莉', '艾米', '傑克']);
+                    char.brief = `這是一個關於${char.name}的故事，他/她是一位${char.identity}，擁有${char.personality}的性格，特點是${char.traits}，喜歡${char.hobbies}。他/她在這個${currentWorldview}的世界中，正等待著屬於自己的愛情。`;
+                }
+
+                document.getElementById(`char-${index}-name`).value = char.name;
+                document.getElementById(`char-${index}-gender`).value = char.gender;
+                document.getElementById(`char-${index}-identity`).value = char.identity;
+                document.getElementById(`char-${index}-personality`).value = char.personality;
+                document.getElementById(`char-${index}-traits`).value = char.traits;
+                document.getElementById(`char-${index}-hobbies`).value = char.hobbies;
+                document.getElementById(`char-${index}-brief`).value = char.brief;
+            }
+            hideLoading();
+
+            let availableCharsForRoles = shuffle([...game.characters]);
+            game.gong = null;
+            game.shou = null;
+            game.characters.forEach(c => { c.isGong = false; c.isShou = false; });
+
+            if (availableCharsForRoles.length >= 2) {
+                game.gong = availableCharsForRoles.shift();
+                game.gong.isGong = true;
+
+                const potentialShouIndex = availableCharsForRoles.findIndex(c => c.id !== game.gong.id);
+                if (potentialShouIndex !== -1) {
+                    game.shou = availableCharsForRoles[potentialShouIndex];
+                    game.shou.isShou = true;
+                } else if (game.characters.length > 1) {
+                     game.shou = game.characters.find(c => c.id !== game.gong.id);
+                     if (game.shou) game.shou.isShou = true;
+                }
+            }
+
+            game.characters.forEach((char, i) => {
+                document.getElementById(`char-${i}-isGong`).checked = char.isGong;
+                document.getElementById(`char-${i}-isShou`).checked = char.isShou;
+                document.getElementById(`char-${i}-noRole`).checked = !char.isGong && !char.isShou;
+            });
+
+            if (game.gameMode === 'goal-oriented') {
+                game.players.filter(p => !p.isAI).forEach(player => {
+                    player.goal = generateRandomGoal();
+                });
+            }
+        }
+
+        async function generateCharacterDetailsWithAI(character, worldview) {
+            const systemPrompt = `你是一位經驗豐富的角色設計師，將根據以下設定為一個故事主角生成符合情境的名字和約100字的人物簡介。
+            世界觀: ${worldview}
+            角色性別: ${character.gender}
+            角色身分: ${character.identity}
+            角色性格: ${character.personality}
+            角色特點: ${character.traits}
+            角色喜好: ${character.hobbies}
+
+            請為此角色生成一個符合世界觀和性格的「名字」，以及一段約100字的「人物簡介」。
+            人物簡介應深入描寫角色的背景、內心世界、與世界觀的連結，並與其屬性保持一致。
+
+            請以 JSON 格式回應，包含 'name' 和 'brief' 兩個字段，例如：
+            {"name": "林辰", "brief": "林辰是..."}
+            請確保簡介的字數約在100字左右。
+            請注意使用繁體中文生成。
+            `;
+
+            const userQuery = `請根據上述設定，為以下角色生成名字和人物簡介：
+            性別: ${character.gender}
+            身分: ${character.identity}
+            性格: ${character.personality}
+            特點: ${character.traits}
+            喜好: ${character.hobbies}`;
+
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            "name": { "type": "STRING" },
+                            "brief": { "type": "STRING" }
+                        },
+                        "propertyOrdering": ["name", "brief"]
+                    }
+                }
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`API error: ${response.status} - ${errorData.error.message}`);
+                }
+
+                const result = await response.json();
+                const candidate = result.candidates?.[0];
+
+                if (candidate && candidate.content?.parts?.[0]?.text) {
+                    return JSON.parse(candidate.content.parts[0].text);
+                } else {
+                    throw new Error("API response format unexpected or content missing.");
+                }
+            } catch (error) {
+                console.error("Error generating character details with AI:", error);
+                throw error;
+            }
+        }
+
+        function generateRandomGoal() {
+            const possibleGoals = [
+                '讓兩位核心主角感情升溫，最終告白',
+                '製造誤會，讓兩位核心主角關係緊張',
+                '引入其中一位主角，挑戰核心關係',
+                '讓核心主角之一做出重大犧牲',
+                '讓故事走向歡樂結局',
+                '讓故事走向悲劇結局',
+                '探索某位主角的過去與秘密',
+                '讓某位主角獲得意想不到的盟友',
+                '讓某位主角克服內心的障礙',
+                '讓故事充滿甜蜜與寵溺'
+            ];
+            return getRandomItem(possibleGoals);
+        }
+
+        async function initializeGame() {
+            game.worldview = worldviewInput.value;
+            game.relationship = relationshipInput.value;
+
+            game.characters.forEach((char, index) => {
+                char.name = document.getElementById(`char-${index}-name`).value;
+                char.gender = document.getElementById(`char-${index}-gender`).value;
+                char.identity = document.getElementById(`char-${index}-identity`).value;
+                char.personality = document.getElementById(`char-${index}-personality`).value;
+                char.traits = document.getElementById(`char-${index}-traits`).value;
+                char.hobbies = document.getElementById(`char-${index}-hobbies`).value;
+                char.brief = document.getElementById(`char-${index}-brief`).value;
+
+                char.isGong = document.getElementById(`char-${index}-isGong`).checked;
+                char.isShou = document.getElementById(`char-${index}-isShou`).checked;
+            });
+
+            game.gong = game.characters.find(c => c.isGong);
+            game.shou = game.characters.find(c => c.isShou);
+
+            if (!game.gong || !game.shou) {
+                showMessage('請至少指定一位「攻」和一位「受」作為核心主角！', 'error');
+                return;
+            }
+
+            // Shuffle deck
+            let phraseDeck = shuffle([...game.cards.phrases, ...game.cards.special]);
+            // Ensure enough cards for the whole game + some buffer
+            let minCardsNeeded = game.totalPlayerCount * game.maxCardsPerGamePerPlayer + game.cards.endings.length + game.totalPlayerCount * 2; // + buffer
+            if (phraseDeck.length < minCardsNeeded) {
+                 // If not enough unique cards, duplicate phrases to ensure deck size
+                while (phraseDeck.length < minCardsNeeded) {
+                    phraseDeck = phraseDeck.concat(shuffle([...game.cards.phrases]));
+                }
+            }
+
+            // Place ending cards strategically to appear later but not too late
+            const endingCards = shuffle([...game.cards.endings]);
+            const insertionPoint = Math.floor(phraseDeck.length * 0.6); // Insert roughly at 60% of the deck
+            game.mainDeck = [...phraseDeck.slice(0, insertionPoint), ...endingCards, ...phraseDeck.slice(insertionPoint)];
+            game.mainDeck = shuffle(game.mainDeck); // Reshuffle entire deck to distribute everything
+
+            game.players.forEach(player => {
+                player.hand = []; // Clear hand
+                for (let i = 0; i < 5; i++) { // Players always start with 5 cards in hand
+                    if (game.mainDeck.length > 0) {
+                        player.hand.push(game.mainDeck.shift());
+                    }
+                }
+                player.cardsPlayedInGame = 0; // Reset for new game
+            });
+
+            // Reset game state for a new game
+            game.isGameOver = false;
+            game.isEndingPhase = false;
+            game.endingCardPlayed = null;
+            game.totalCardsPlayedInGame = 0;
+            game.allPlayerActionsHistory = [];
+            game.currentPlayerIndex = 0;
+
+            characterSetupSection.classList.add('hidden');
+            gamePlaySection.classList.remove('hidden');
+            storyDisplay.innerHTML = '<p class="text-center text-gray-500 italic">遊戲開始後，故事將從這裡展開...</p>';
+            
+            // Initial messages
+            const initialStorySegment = document.createElement('p');
+            initialStorySegment.classList.add('font-bold', 'text-pink-700', 'mt-4');
+            initialStorySegment.textContent = `【系統】遊戲設定完成，現在開始您的愛情創作之旅！`;
+            storyDisplay.appendChild(initialStorySegment);
+
+            const initialWorldIntro = document.createElement('p');
+            initialWorldIntro.textContent = `在這個「${game.worldview}」的世界觀下，以「${game.relationship}」的關係展開，我們的故事主角們——${game.characters.map(c => c.name).join('、')}，他們的命運之輪已悄然轉動...`;
+            storyDisplay.appendChild(initialWorldIntro);
+            
+            storyDisplay.scrollTop = storyDisplay.scrollHeight;
+
+            updateGamePlayUI();
+        }
+
+        async function updateGamePlayUI() {
+            if (game.isGameOver) {
+                // If game is over, skip UI updates and trigger final story
+                return;
+            }
+
+            const currentPlayer = game.players[game.currentPlayerIndex];
+            currentPlayerNameDisplay.textContent = currentPlayer.name;
+            totalCardsPlayedDisplay.textContent = game.totalCardsPlayedInGame;
+            maxGameCardsDisplay.textContent = game.totalPlayerCount * game.maxCardsPerGamePerPlayer;
+
+
+            currentWorldviewDisplay.textContent = game.worldview;
+            currentRelationshipDisplay.textContent = game.relationship;
+
+            activeCharactersDisplay.innerHTML = '';
+            game.characters.forEach(char => {
+                const charElement = document.createElement('div');
+                charElement.classList.add('card', 'card-type-character', 'text-center', 'p-3', 'text-sm');
+                let roleInfo = '';
+                if (char.isGong) roleInfo = `<span class="text-pink-700 font-bold"> (攻)</span>`;
+                else if (char.isShou) roleInfo = `<span class="text-pink-700 font-bold"> (受)</span>`;
+                charElement.innerHTML = `
+                    <p class="font-bold text-lg mb-1">${char.name}${roleInfo}</p>
+                    <p class="text-xs text-gray-600">${char.identity} | ${char.personality}</p>
+                    <p class="text-xs text-gray-500">性別: ${char.gender} | 特點: ${char.traits}</p>
+                    <p class="text-xs text-gray-500">喜好: ${char.hobbies}</p>
+                    <p class="text-xs text-gray-700 mt-2 text-left">${char.brief.substring(0, 50)}...</p>
+                `;
+                activeCharactersDisplay.appendChild(charElement);
+            });
+
+
+            if (game.gameMode === 'goal-oriented' && !currentPlayer.isAI) {
+                playerGoalDisplay.textContent = `您的目標劇情：${currentPlayer.goal}`;
+                playerGoalDisplay.classList.remove('hidden');
+            } else {
+                playerGoalDisplay.classList.add('hidden');
+            }
+
+
+            playerHandContainer.innerHTML = '';
+            if (!currentPlayer.isAI) {
+                currentPlayer.hand.forEach(card => {
+                    const cardElement = document.createElement('div');
+                    cardElement.classList.add('card', 'card-type-詞句', 'w-32', 'p-3', 'text-sm', 'flex-shrink-0');
+                    if (game.cards.special.some(c => c.name === card.name)) {
+                        cardElement.classList.add('card-type-特殊');
+                    } else if (game.cards.endings.some(c => c.name === card.name)) {
+                        cardElement.classList.add('card-type-結局');
+                    } else {
+                        cardElement.classList.add('card-type-詞句');
+                    }
+
+                    cardElement.innerHTML = `
+                        <p class="font-bold mb-1">${card.name}</p>
+                        <p class="text-xs text-gray-500">
+                            ${game.cards.special.some(c => c.name === card.name) ? '特殊情境卡' :
+                            game.cards.endings.some(c => c.name === card.name) ? '結局卡' : '詞句卡'}
+                        </p>
+                    `;
+                    cardElement.dataset.cardName = card.name;
+                    cardElement.addEventListener('click', () => selectCard(card, cardElement));
+                    playerHandContainer.appendChild(cardElement);
+                });
+            } else {
+                playerHandContainer.innerHTML = '<p class="text-gray-500 italic">AI 玩家正在思考...</p>';
+            }
+
+            playerDescriptionInput.value = '';
+            game.selectedCard = null;
+
+            // Disable play if AI, no card selected, or player has no cards, or game is over.
+            let disablePlay = currentPlayer.isAI || !game.selectedCard || currentPlayer.hand.length === 0 || game.isGameOver;
+
+            playerDescriptionInput.disabled = disablePlay;
+            playCardButton.disabled = disablePlay;
+
+            // If it's AI's turn and game is not over, let AI play a card
+            if (currentPlayer.isAI && !game.isGameOver) {
+                setTimeout(() => aiPlayOneCard(), 1500);
+            }
+        }
+
+        function selectCard(card, element) {
+            document.querySelectorAll('#player-hand-container .card').forEach(c => c.classList.remove('selected'));
+            element.classList.add('selected');
+            game.selectedCard = card;
+            playerDescriptionInput.value = card.name;
+            
+            // Re-evaluate play button state
+            const currentPlayer = game.players[game.currentPlayerIndex];
+            playCardButton.disabled = currentPlayer.isAI || !game.selectedCard || currentPlayer.hand.length === 0 || game.isGameOver;
+        }
+
+        async function playOneCard(card, playerDescription = null) {
+            if (game.isGameOver) return; // Do nothing if game is already over
+
+            if (!card) {
+                if (!game.selectedCard) {
+                    showMessage('請先選擇一張手牌！', 'error');
+                    return;
+                }
+                card = game.selectedCard;
+            }
+
+            const currentPlayer = game.players[game.currentPlayerIndex];
+            const description = playerDescription || playerDescriptionInput.value;
+
+            if (!description && !currentPlayer.isAI) {
+                showMessage('請描述該劇情段落！', 'error');
+                return;
+            }
+
+            // Display player's action immediately
+            const playerActionElement = document.createElement('p');
+            playerActionElement.classList.add('font-bold', 'text-pink-700', 'mt-4');
+            playerActionElement.textContent = `${currentPlayer.name} 打出「${card.name}」。描述：「${description}」`;
+            storyDisplay.appendChild(playerActionElement);
+            storyDisplay.scrollTop = storyDisplay.scrollHeight;
+
+            // Store played card info
+            game.allPlayerActionsHistory.push({
+                playerIndex: game.currentPlayerIndex,
+                playerName: currentPlayer.name,
+                card: card,
+                description: description,
+                isAI: currentPlayer.isAI
+            });
+
+            // Remove card from hand and move to discard pile
+            const cardIndex = currentPlayer.hand.findIndex(c => c.name === card.name);
+            if (cardIndex !== -1) {
+                currentPlayer.hand.splice(cardIndex, 1)[0];
+                game.discardPile.push(card); // Add to discard pile
+            } else {
+                console.error(`Error: Card "${card.name}" not found in ${currentPlayer.name}'s hand.`);
+                showMessage(`錯誤：手牌中找不到「${card.name}」。`, 'error');
+                return;
+            }
+
+            // Update game progress
+            game.totalCardsPlayedInGame++;
+            currentPlayer.cardsPlayedInGame++; // Track cards played by this specific player
+
+            // Draw a new card for the player
+            if (game.mainDeck.length > 0) {
+                currentPlayer.hand.push(game.mainDeck.shift());
+            } else {
+                const systemMessageElement = document.createElement('p');
+                systemMessageElement.classList.add('text-pink-600', 'font-bold', 'mt-2');
+                systemMessageElement.textContent = `【系統】牌庫已空，無法補牌。`;
+                storyDisplay.appendChild(systemMessageElement);
+                storyDisplay.scrollTop = storyDisplay.scrollHeight;
+            }
+
+
+            // --- Check for game over conditions ---
+            // 1. Ending card played
+            if (game.cards.endings.some(c => c.name === card.name)) {
+                game.isGameOver = true;
+                game.endingCardPlayed = card;
+                const systemMessageElement = document.createElement('p');
+                systemMessageElement.classList.add('text-pink-600', 'font-bold', 'mt-2');
+                systemMessageElement.textContent = `【系統】結局卡「${card.name}」已被打出！遊戲結束。`;
+                storyDisplay.appendChild(systemMessageElement);
+                storyDisplay.scrollTop = storyDisplay.scrollHeight;
+                await generateFinalStory(); // Generate final story immediately
+                return; // End turn flow
+            }
+
+            // 2. Max cards played (4 rounds completed)
+            if (game.totalCardsPlayedInGame === game.totalPlayerCount * game.maxCardsPerGamePerPlayer) {
+                game.isGameOver = true;
+                const systemMessageElement = document.createElement('p');
+                systemMessageElement.classList.add('text-pink-600', 'font-bold', 'mt-2');
+                systemMessageElement.textContent = `【系統】所有玩家已完成 ${game.maxCardsPerGamePerPlayer} 回合的出牌！遊戲結束。`;
+                storyDisplay.appendChild(systemMessageElement);
+                storyDisplay.scrollTop = storyDisplay.scrollHeight;
+                await generateFinalStory(); // Generate final story
+                return; // End turn flow
+            }
+
+            // If game is not over, switch to next player
+            switchToNextPlayer();
+        }
+
+        async function aiPlayOneCard() {
+            if (game.isGameOver) return;
+
+            const currentPlayer = game.players[game.currentPlayerIndex];
+
+            // AI must have cards to play
+            if (currentPlayer.hand.length === 0) {
+                const systemMessageElement = document.createElement('p');
+                systemMessageElement.classList.add('text-pink-600', 'font-bold', 'mt-2');
+                systemMessageElement.textContent = `【系統】AI 玩家 ${currentPlayer.name} 手牌已空，跳過回合。`;
+                storyDisplay.appendChild(systemMessageElement);
+                storyDisplay.scrollTop = storyDisplay.scrollHeight;
+                switchToNextPlayer(); // Skip AI if no cards
+                return;
+            }
+
+            // AI picks a random card
+            const cardToPlay = currentPlayer.hand[Math.floor(Math.random() * currentPlayer.hand.length)];
+            let aiDescription = '';
+
+            // AI's simple description logic (can be expanded)
+            if (game.cards.endings.some(c => c.name === cardToPlay.name)) {
+                aiDescription = `AI 玩家選擇打出結局牌「${cardToPlay.name}」，為故事劃下句點。`;
+            } else if (cardToPlay.name === '攻受逆轉卡') {
+                aiDescription = `AI 玩家打出「攻受逆轉卡」，試圖改變核心角色的關係流動。`;
+            } else {
+                aiDescription = `AI 玩家打出「${cardToPlay.name}」，在當前情境下添加一段微妙的互動。`;
+            }
+
+            // Call the unified playOneCard function
+            await playOneCard(cardToPlay, aiDescription);
+        }
+
+        function switchToNextPlayer() {
+            if (game.isGameOver) return; // Do not switch player if game is over
+
+            let nextPlayerIndex = (game.currentPlayerIndex + 1) % game.totalPlayerCount;
+            let attempts = 0;
+
+            while (attempts < game.totalPlayerCount) {
+                const player = game.players[nextPlayerIndex];
+                
+                // Player is eligible if they haven't played their max cards yet and have cards in hand
+                const playerEligible = player.cardsPlayedInGame < game.maxCardsPerGamePerPlayer && player.hand.length > 0;
+
+                if (playerEligible) {
+                    game.currentPlayerIndex = nextPlayerIndex;
+                    updateGamePlayUI();
+                    return;
+                }
+
+                nextPlayerIndex = (nextPlayerIndex + 1) % game.totalPlayerCount;
+                attempts++;
+            }
+
+            // If we reached here, no eligible player found. This should only happen if game is over by max cards played or all players ran out of cards early.
+            console.log("No eligible player found, checking game over conditions.");
+            if (game.totalCardsPlayedInGame < game.totalPlayerCount * game.maxCardsPerGamePerPlayer) {
+                 // All players ran out of cards before max rounds, so end the game prematurely.
+                game.isGameOver = true;
+                const systemMessageElement = document.createElement('p');
+                systemMessageElement.classList.add('text-pink-600', 'font-bold', 'mt-2');
+                systemMessageElement.textContent = `【系統】所有玩家手牌已空，遊戲提前結束。`;
+                storyDisplay.appendChild(systemMessageElement);
+                storyDisplay.scrollTop = storyDisplay.scrollHeight;
+                generateFinalStory();
+            } else if (!game.isGameOver) {
+                // This state should not be reachable if game over conditions are handled correctly
+                console.error("Unexpected state: No eligible player but game not marked as over.");
+                showMessage("遊戲狀態異常，請重新開始。",'error');
+            }
+        }
+
+
+        async function generateFinalStory() {
+            showLoading();
+
+            const allPlayerActionsText = game.allPlayerActionsHistory.map(action => {
+                return `${action.playerName} 打出卡牌：「${action.card.name}」。描述：「${action.description}」`;
+            }).join('\n');
+
+            const { gong, shou, relationship, worldview, characters } = game;
+
+            const gongInfo = gong ? `${gong.name} (攻, 性別:${gong.gender})` : '未指定攻';
+            const shouInfo = shou ? `${shou.name} (受, 性別:${shou.gender})` : '未指定受';
+            
+            // Limit characters info for prompt to avoid length issues
+            const allProtagonistsSummary = characters.map(c => {
+                let role = '';
+                if (c.isGong) role = '(攻)';
+                else if (c.isShou) role = '(受)';
+                return `${c.name}${role} (性別: ${c.gender}, 身分: ${c.identity}, 性格: ${c.personality}, 特點: ${c.traits.substring(0,20)})`;
+            }).join('；');
+
+
+            const systemPrompt = `你是一位經驗豐富的愛情故事作家，將根據整個遊戲過程中所有玩家提供的行動和描述，以及故事的背景設定，生成一個引人入勝且連貫的最終結局故事。
+            請注意以下設定：
+            遊戲名稱: 大家一起 Making Love (不只侷限於 BL，也包含 GL、BG、GB 等各種性向的愛情故事)
+            世界觀: ${worldview}
+            初始關係: ${relationship}
+            故事主角們: ${allProtagonistsSummary}
+            目前的攻: ${gongInfo}
+            目前的受: ${shouInfo}
+            ${game.endingCardPlayed ? `遊戲因結局卡「${game.endingCardPlayed.name}」結束，其描述為：「${game.endingCardPlayed.description}」。` : `遊戲因完成所有回合而結束。`}
+
+            你的任務是：
+            1. 將所有玩家在遊戲中打出的卡牌和描述，整合為一個流暢且邏輯連貫的完整故事。
+            2. 確保故事高潮迭起，情感豐富，並與所有卡牌的意境相符。
+            3. 如果有「攻受逆轉卡」被使用，請在最終敘述中體現其對關係的影響。
+            4. 保持故事的浪漫、曖昧或緊張氛圍，避免不必要的衝突細節。
+            5. 請用繁體中文撰寫，語氣優美，情節引人入勝。
+            6. 故事字數建議在 300-500 字之間，能完整呈現從開始到結束的歷程。
+            7. 請特別注意主角的性別，在生成敘述時使用正確的代名詞和描寫。
+            8. 最終結局應該和遊戲結束的原因（結局卡或回合結束）相呼應。
+            `;
+
+            const userQuery = `以下是遊戲中所有玩家的行動歷史：\n${allPlayerActionsText}\n\n請根據這些行動，以及上述背景設定，為遊戲撰寫一個完整的最終結局故事。`;
+
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+            };
+
+            let finalNarration = '';
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`API error: ${response.status} - ${errorData.error.message}`);
+                }
+
+                const result = await response.json();
+                const candidate = result.candidates?.[0];
+
+                if (candidate && candidate.content?.parts?.[0]?.text) {
+                    finalNarration = candidate.content.parts[0].text;
+                } else {
+                    throw new Error("API response format unexpected or content missing.");
+                }
+            } catch (error) {
+                console.error("Error generating final story:", error);
+                showMessage(`AI 最終故事生成失敗：${error.message}。將使用預設結局概述。`, 'error');
+                finalNarration = `【AI 助手】由於AI服務問題，無法生成詳細結局。但根據所有玩家的行動，我們的故事在一個${game.endingCardPlayed ? game.endingCardPlayed.name : '充滿懸念'}的時刻結束了。`;
+            } finally {
+                hideLoading();
+                // Append final narration to storyDisplay
+                const finalNarrationElement = document.createElement('p');
+                finalNarrationElement.classList.add('font-bold', 'text-purple-700', 'mt-6', 'text-lg');
+                finalNarrationElement.textContent = `【AI 最終故事結局】`;
+                storyDisplay.appendChild(finalNarrationElement);
+                const finalStoryTextElement = document.createElement('p');
+                finalStoryTextElement.textContent = finalNarration;
+                storyDisplay.appendChild(finalStoryTextElement);
+                storyDisplay.scrollTop = storyDisplay.scrollHeight;
+
+                displayFinalGameRecord(); // Final game record now uses the complete storyDisplay
+                gamePlaySection.classList.add('hidden');
+                gameEndSection.classList.remove('hidden');
+            }
+        }
+
+
+        function displayFinalGameRecord() {
+            let recordHtml = `
+                <h3 class="text-xl font-semibold mb-4 text-green-800">遊戲設定</h3>
+                <ul class="list-disc list-inside mb-6">
+                    <li>實際玩家人數：${game.humanPlayerCount}</li>
+                    <li>總參與回合玩家數：${game.totalPlayerCount}</li>
+                    <li>故事主角人數：${game.protagonistCount}</li>
+                    <li>遊戲模式：${game.gameMode === 'collaborative' ? '合作完成故事' : '達成自己的目標劇情'}</li>
+                    <li>世界觀：${game.worldview}</li>
+                    <li>初始關係：${game.relationship}</li>
+                </ul>
+
+                <h3 class="text-xl font-semibold mb-4 text-green-800">登場主角</h3>
+                <ul class="list-disc list-inside mb-6">
+            `;
+            game.characters.forEach(char => {
+                let roleInfo = '';
+                if (char.isGong) roleInfo = ' (攻)';
+                else if (char.isShou) roleInfo = ' (受)';
+                recordHtml += `<li>${char.name}${roleInfo} - 性別: ${char.gender}, 身分: ${char.identity}, 性格: ${char.personality}, 特點: ${char.traits}, 喜好: ${char.hobbies}</li>`;
+                recordHtml += `<li>簡介: ${char.brief}</li><br/>`;
+            });
+            recordHtml += `</ul>`;
+
+            if (game.gameMode === 'goal-oriented') {
+                recordHtml += `<h3 class="text-xl font-semibold mb-4 text-green-800">玩家目標</h3><ul class="list-disc list-inside mb-6">`;
+                game.players.filter(p => !p.isAI).forEach(player => {
+                    recordHtml += `<li>${player.name}：${player.goal}</li>`;
+                });
+                recordHtml += `</ul>`;
+            }
+
+            recordHtml += `
+                <h3 class="text-xl font-semibold mb-4 text-green-800">故事發展總結</h3>
+                <div class="space-y-3">
+                    ${storyDisplay.innerHTML}
+                </div>
+            `;
+
+            finalStorySummaryDisplay.innerHTML = recordHtml;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            startPage.classList.remove('hidden');
+            characterSetupSection.classList.add('hidden');
+            gamePlaySection.classList.add('hidden');
+            gameEndSection.classList.add('hidden');
+        });
+
+    </script>
+</body>
+</html>
