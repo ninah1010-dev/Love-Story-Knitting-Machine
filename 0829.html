@@ -133,6 +133,11 @@
                 <input type="number" id="protagonist-count" min="2" max="4" value="2" class="w-24 p-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500">
                 <p class="text-sm text-gray-500 mt-1">玩家將為這些主角編寫故事。</p>
             </div>
+            <div class="mb-4">
+                <label for="custom-rounds-per-player" class="block text-lg font-medium text-gray-700 mb-2">自訂遊戲總回合數 (每位玩家，1-10回合):</label>
+                <input type="number" id="custom-rounds-per-player" min="1" max="10" value="4" class="w-24 p-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500">
+                <p class="text-sm text-gray-500 mt-1">設定每位玩家在遊戲中可以打出的牌數。遊戲將在所有玩家都達到此限制後結束。</p>
+            </div>
             <div class="mb-6">
                 <label for="game-mode" class="block text-lg font-medium text-gray-700 mb-2">請選擇遊戲模式:</label>
                 <select id="game-mode" class="w-full md:w-1/2 p-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500">
@@ -259,26 +264,34 @@
                     { name: '傲嬌學生', type: '受' }, { name: '神秘藝術家', type: '受' }, { name: '青梅竹馬', type: '受' }, { name: '熱情學弟', type: '受' }, { name: '高冷學者', type: '受' }
                 ],
                 relationships: [
+                    '假扮情侶', '契約婚姻', '競爭對手', '師徒情誼', '拯救與被拯救',
+                    '筆友', '鄰居關係', '網路戀情', '異國情緣', '相親對象',
+                    '跨越階級的愛', '失憶重逢', '靈魂伴侶', '敵對家族', '同事關係',
                     '秘密時間', '同居生活', '意外邂逅', '師生戀', '職場戀情',
-                    '異世界相遇', '青梅竹馬', '網路情緣', '穿越時空', '契約關係',
-                    '竹馬之交', '命中註定', '互相扶持', '愛恨交織', '跨越藩籬'
+                    '異世界相遇', '青梅竹馬', '穿越時空', '契約關係',
+                    '竹馬之交', '命中註定', '互相扶持', '愛恨交織', '跨越藩籬',
+                    '監護人與被監護人', '交換生', '秘密戀情', '冤家', '青梅竹馬的戀人', '童年玩伴的單戀', '家族聯姻', '政敵之子', '星際逃犯與追捕者'
                 ],
                 worldviews: [
+                    '賽博龐克城市', '後啟示錄廢土', '太空殖民地', '古代王朝', '蒸汽龐克工業城',
+                    '奇幻森林國度', '水下都市', '虛擬實境世界', '時間旅行管理局', '神話時代',
+                    '犯罪都市', '末日方舟', '懸浮島嶼', '魔法學院', '現代大學',
+                    '異世界轉生', '戰後重建區', '地下實驗室', '豪華度假村', '被遺忘的帝國',
                     '科幻都市', '奇幻學院', '現代校園', '古風江湖', '末日生存',
-                    '架空歷史', '蒸汽朋克', '魔幻森林', '豪華郵輪', '神秘實驗室'
+                    '架空歷史', '豪華郵輪', '神秘實驗室', '未來都市的邊緣街區', '被魔法遺棄的小鎮', '星際貿易聯盟', '古代東方神秘國度', '賽博龐克地下城', '荒蕪的宇宙邊緣', '時間線錯亂的城市', '神祇共存的凡間', '高科技罪犯的樂園', '瘟疫籠罩的隔離區', '空中城堡', '沉沒大陸的遺民'
                 ],
                 phrases: [
                     { name: '放學後的教室' }, { name: '心跳加速' }, { name: '告白' }, { name: '秘密雨夜' }, { name: '紅茶香' },
                     { name: '擦身而過' }, { name: '無心之言' }, { name: '臉紅心跳' }, { name: '溫暖的眼神' }, { name: '意外的擁抱' },
-                    { name: '獨自等待' }, { name: '街角咖啡店' }, { name: '徹夜長談' }, { name: '共同的秘密' }, { name: '指尖的溫度' },
-                    { name: '意想不到的禮物' }, { name: '微醺之夜' }, { name: '無言的陪伴' }, { name: '一線希望' }, { name: '迷失的眼神' },
-                    { name: '突如其來的邀約' }, { name: '難以言喻的衝動' }, { name: '背影' }, { name: '耳邊細語' }, { name: '微妙的距離' },
-                    { name: '月光下的誓言' }, { name: '不眠之夜' }, { name: '溫柔的觸碰' }, { name: '無法言說的秘密' }, { name: '命運的玩笑' }
+                    { name: '獨自等待' }, { name: '街角咖啡店' }, { name: '徹夜長談' }, { name: '共同的秘密' }, { name: '指尖的溫度' },{ name: '不期而遇' },
+                    { name: '意想不到的禮物' }, { name: '微醺之夜' }, { name: '無言的陪伴' }, { name: '一線希望' }, { name: '迷失的眼神' },{ name: '深入探索彼此' },
+                    { name: '突如其來的邀約' }, { name: '難以言喻的衝動' }, { name: '背影' }, { name: '耳邊細語' }, { name: '微妙的距離' }, { name: '雨夜的傾聽' }, { name: '淚如雨下' },
+                    { name: '月光下的誓言' }, { name: '不眠之夜' }, { name: '溫柔的觸碰' }, { name: '無法言說的秘密' }, { name: '命運的玩笑' }, { name: '肢體的接觸' }, { name: '曖昧的氣氛' }, { name: '最親密的共犯關係' }
                 ],
                 special: [
-                    { name: '攻受逆轉卡' }, { name: '劇情急轉直下' }, { name: '情感爆發' }, { name: '危機降臨' }, { name: '突如其來的吻' },
-                    { name: '誤會叢生' }, { name: '第三者出現' }, { name: '意外的旅行' }, { name: '命運的捉弄' }, { name: '時間倒轉' },
-                    { name: '記憶碎片' }, { name: '意料之外的盟友' }, { name: '宿命的對決' }, { name: '交換身體' }, { name: '遺失的信物' }
+                    { name: '攻受逆轉卡' }, { name: '劇情急轉直下' }, { name: '情感爆發' }, { name: '危機降臨' }, { name: '突如其來的吻' }, { name: '因意外事故受傷' },
+                    { name: '誤會叢生' }, { name: '第三者出現' }, { name: '意外的旅行' }, { name: '命運的捉弄' }, { name: '時間倒轉' }, { name: '被迫假死' },
+                    { name: '記憶碎片' }, { name: '意料之外的盟友' }, { name: '宿命的對決' }, { name: '交換身體' }, { name: '遺失的信物' }, { name: '靈魂出竅' }, { name: '遭到囚禁' }
                 ],
                 endings: [
                     { name: 'HAPPY END', description: '在櫻花樹下，他們告白，擁抱幸福的未來。' },
@@ -299,6 +312,7 @@
         const startPage = document.getElementById('start-page');
         const humanPlayerCountInput = document.getElementById('human-player-count');
         const protagonistCountInput = document.getElementById('protagonist-count');
+        const customRoundsPerPlayerInput = document.getElementById('custom-rounds-per-player'); // New input
         const gameModeSelect = document.getElementById('game-mode');
         const nextToCharacterSetupButton = document.getElementById('next-to-character-setup-button');
 
@@ -379,6 +393,7 @@
         function setupCharacterPage() {
             game.humanPlayerCount = parseInt(humanPlayerCountInput.value, 10);
             game.protagonistCount = parseInt(protagonistCountInput.value, 10);
+            game.maxCardsPerGamePerPlayer = parseInt(customRoundsPerPlayerInput.value, 10); // Set custom rounds
             game.gameMode = gameModeSelect.value;
 
             if (game.humanPlayerCount < 1 || game.humanPlayerCount > 5) {
@@ -387,6 +402,10 @@
             }
             if (game.protagonistCount < 2 || game.protagonistCount > 4) {
                 showMessage('故事主角人數必須在 2 到 4 之間！', 'error');
+                return;
+            }
+            if (game.maxCardsPerGamePerPlayer < 1 || game.maxCardsPerGamePerPlayer > 10) {
+                showMessage('自訂遊戲總回合數必須在 1 到 10 之間！', 'error');
                 return;
             }
 
@@ -413,7 +432,7 @@
                     name: '玩家 2 (AI)',
                     isAI: true,
                     hand: [],
-                    goal: '',
+                    
                     cardsPlayedInGame: 0
                 });
             }
@@ -434,11 +453,11 @@
         async function generateWorldAndRelationshipWithAI() {
             showLoading();
             const systemPrompt = `你是一位經驗豐富的愛情故事創作者，請為一個多元愛情故事遊戲《大家一起 Making Love》生成一個引人入勝的「世界觀」和「初始關係」。
-            世界觀應具體且富有想像力 (例如：科幻都市、末日生存、古風江湖等)，**請務必簡潔，不超過15個字**。
-            初始關係應能引發有趣的互動 (例如：青梅竹馬、宿敵、契約關係、異世界相遇等)，**請務必簡潔，不超過15個字**。
+            世界觀應具體、富有想像力且多樣化，避免重複主題。例如：'賽博龐克城市', '後啟示錄廢土', '太空殖民地', '古代王朝', '蒸汽龐克工業城', '奇幻森林國度', '水下都市', '虛擬實境世界', '時間旅行管理局', '神話時代', '犯罪都市', '末日方舟', '懸浮島嶼', '現代大學', '異世界轉生', '戰後重建區', '地下實驗室', '豪華度假村', '被遺忘的帝國', '未來都市的邊緣街區', '被魔法遺棄的小鎮', '星際貿易聯盟', '古代東方神秘國度', '賽博龐克地下城', '荒蕪的宇宙邊緣', '時間線錯亂的城市', '神祇共存的凡間', '高科技罪犯的樂園', '瘟疫籠罩的隔離區', '空中城堡', '沉沒大陸的遺民'。**請務必簡潔，不超過15個字**。
+            初始關係應能引發有趣的互動且多樣化，避免常見套路。例如：'假扮情侶', '契約婚姻', '競爭對手', '師徒情誼', '拯救與被拯救', '筆友', '鄰居關係', '網路戀情', '異國情緣', '相親對象', '跨越階級的愛', '失憶重逢', '靈魂伴侶', '敵對家族', '同事關係', '監護人與被監護人', '交換生', '秘密戀情', '冤家', '青梅竹馬的戀人', '童年玩伴的單戀', '家族聯姻', '政敵之子', '星際逃犯與追捕者'。**請務必簡潔，不超過15個字**。
 
             請以 JSON 格式回應，包含 'worldview' 和 'relationship' 兩個字段，例如：
-            {"worldview": "蒸汽朋克工業城", "relationship": "上下屬的秘密戀情"}
+            {"worldview": "懸浮島嶼的秘境", "relationship": "逃亡者與追緝者"}
             請注意使用繁體中文生成。
             `;
             const userQuery = `請生成一個世界觀和初始關係。`;
@@ -485,10 +504,8 @@
             } catch (error) {
                 console.error("Error generating worldview and relationship with AI:", error);
                 showMessage(`AI 生成世界觀與關係失敗：${error.message}。將使用預設隨機選項。`, 'error');
-                const defaultWorldviews = ['科幻都市', '奇幻學院', '現代校園', '古風江湖', '末日生存'];
-                const defaultRelationships = ['青梅竹馬', '宿敵', '師生戀', '意外邂逅', '契約關係'];
-                worldviewInput.value = getRandomItem(defaultWorldviews);
-                relationshipInput.value = getRandomItem(defaultRelationships);
+                worldviewInput.value = getRandomItem(game.cards.worldviews); // Use expanded list
+                relationshipInput.value = getRandomItem(game.cards.relationships); // Use expanded list
             } finally {
                 hideLoading();
             }
@@ -571,10 +588,10 @@
                 const char = game.characters[index];
                 
                 char.gender = getRandomItem(game.characterData.genders);
-                const genericIdentities = ['旅人', '間諜', '醫師', '農夫', '航海士', '鍊金術師', '學者', '工匠', '僧侶', '詩人','醫者','學生', '老師', '藝術家', '科學家', '冒險者', '商人', '傭兵', '王族', '平民'];
-                const genericPersonalities = ['咬唇習慣', '眼神勾人', '身材火辣', '愛穿緊身衣', '走路帶風搖曳', '常露出鎖骨', '指尖纏繞髮絲', '刻意保持神秘感', '說話帶挑逗語氣', '笑容中帶壞意','樂觀', '多疑', '固執', '隨和', '敏感', '堅毅', '風趣', '孤傲', '謹慎', '果斷','開朗', '內向', '神秘', '熱情', '冷靜', '傲嬌', '溫柔', '霸道'];
-                const genericTraits = ['捲髮', '雀斑', '左撇子', '體格壯碩', '步伐輕盈', '嗓音沙啞', '常帶手套', '喜歡戴帽子', '笑容燦爛', '眼神銳利','眼鏡', '長髮', '疤痕', '高挑', '嬌小', '聲音低沉', '聲音清脆', '喜歡穿黑衣', '喜歡穿白衣','頭腦靈活', '記憶力超群', '身手敏捷', '體力驚人', '善於觀察', '口才一流', '意志堅強', '擅長隱匿', '直覺敏銳'];
-                const genericHobbies = ['惡作劇', '雙關語', '角色扮演', '收集禁書', '偷窺', '挑釁他人', '說謊成癮', '危險遊戲', '支配或被支配的感覺', '打破禁忌','閱讀', '寫作', '繪畫', '音樂', '運動', '烹飪', '旅行', '研究', '收集','釣魚', '園藝', '舞蹈', '雕刻', '下棋', '占卜', '書法', '茶道', '觀星', '攝影'];
+                const genericIdentities = ['武士','流浪者','囚徒','黑道','旅人', '間諜', '醫師', '農夫', '航海士', '鍊金術師', '學者', '工匠', '僧侶', '詩人','醫者','學生', '老師', '藝術家', '科學家', '冒險者', '商人', '傭兵', '王族', '平民', '貴族', '舞者', '歌手', '作家', '偵探', '海盜', '將軍', '廚師', '園丁', '占卜師', '偶像', '魔術師', '騎士', '學者', '神官', '吟遊詩人', '刺客', '革命軍', '機器人', '外星人','叛徒'];
+                const genericPersonalities = ['有自毀衝動','病態','樂觀', '多疑', '固執', '隨和', '敏感', '堅毅', '風趣', '孤傲', '謹慎', '果斷','開朗', '內向', '神秘', '熱情', '冷靜', '傲嬌', '溫柔', '霸道', '狡猾', '忠誠', '勇敢', '膽怯', '活潑', '沉穩', '衝動', '理性', '感性', '嚴肅', '幽默', '悲觀', '樂天', '腹黑', '天然呆', '病嬌', '傲慢', '謙遜', '貪婪', '無私'];
+                const genericTraits = ['淚失禁','體弱','捲髮', '雀斑', '左撇子', '體格壯碩', '步伐輕盈', '嗓音沙啞', '常帶手套', '喜歡戴帽子', '笑容燦爛', '眼神銳利','眼鏡', '長髮', '疤痕', '高挑', '嬌小', '聲音低沉', '聲音清脆', '喜歡穿黑衣', '喜歡穿白衣','頭腦靈活', '記憶力超群', '身手敏捷', '體力驚人', '善於觀察', '口才一流', '意志堅強', '擅長隱匿', '直覺敏銳', '髮色奇特', '瞳孔異色', '肢體語言豐富', '不善言辭', '嗜睡', '愛吃甜食', '酒量極佳', '方向感差', '有特殊氣味', '過敏體質', '幸運E', '招貓體質', '擅長偽裝','性感'];
+                const genericHobbies = ['自殺','惡作劇', '雙關語', '角色扮演', '收集禁書', '偷窺', '挑釁他人', '說謊成癮', '危險遊戲', '支配或被支配的感覺', '打破禁忌','閱讀', '寫作', '繪畫', '音樂', '運動', '烹飪', '旅行', '研究', '收集','釣魚', '園藝', '舞蹈', '雕刻', '下棋', '占卜', '書法', '茶道', '觀星', '攝影', '打電動', '收藏模型', '調酒', '極限運動', '探險', '冥想', '街頭藝術', '魔術', '養寵物', '園藝', '手工藝', '推理小說', '美食探索'];
 
                 char.identity = getRandomItem(genericIdentities);
                 char.personality = getRandomItem(genericPersonalities);
@@ -603,6 +620,7 @@
             hideLoading();
 
             // Initial assignment of one Gong and one Shou if not already set, for at least a basic setup
+            // This part ensures there's at least one Gong and one Shou, but allows more if user adds them.
             game.gongs = [];
             game.shous = [];
             game.characters.forEach(c => { c.isGong = false; c.isShou = false; }); // Clear all roles first for safety
@@ -610,14 +628,15 @@
             let availableForGong = shuffle([...game.characters]);
             let availableForShou = shuffle([...game.characters]);
 
-            if (availableForGong.length > 0 && availableForShou.length > 0) {
-                // Assign first gong
+            if (availableForGong.length > 0) {
                 game.gongs.push(availableForGong[0]);
                 game.gongs[0].isGong = true;
+            }
 
-                // Assign first shou (ensure it's not the same as gong if possible)
-                let shouCandidate = availableForShou.find(c => c.id !== game.gongs[0].id);
-                if (!shouCandidate && availableForShou.length > 0) { // If only one character or no other distinct character
+            if (availableForShou.length > 0) {
+                // Try to pick a different character for Shou if possible
+                let shouCandidate = availableForShou.find(c => !game.gongs.includes(c));
+                if (!shouCandidate) { // If all characters are already gongs, just pick the first one
                     shouCandidate = availableForShou[0];
                 }
                 if (shouCandidate) {
@@ -641,7 +660,7 @@
         }
 
         async function generateCharacterDetailsWithAI(character, worldview) {
-            const systemPrompt = `你是一位經驗豐富的角色設計師，將根據以下設定為一個故事主角生成符合情境的名字和約100字的人物簡介。
+            const systemPrompt = `你是一位經驗豐富的角色設計師，將根據以下設定為一個故事主角生成符合情境的名字和約100字的人物簡介。請務必確保角色的屬性組合富有創意，避免重複或刻板印象。
             世界觀: ${worldview}
             角色性別: ${character.gender}
             角色身分: ${character.identity}
@@ -720,7 +739,16 @@
                 '探索某位主角的過去與秘密',
                 '讓某位主角獲得意想不到的盟友',
                 '讓某位主角克服內心的障礙',
-                '讓故事充滿甜蜜與寵溺'
+                '讓故事充滿甜蜜與寵溺',
+                '促成至少三位主角之間的三角戀', // New goal for multi-role
+                '讓多位攻角色為爭奪受角色而競爭', // New goal for multi-role
+                '讓受角色在多位攻之間做出選擇', // New goal for multi-role
+                '建立一個複雜的多角戀關係網', // New goal for multi-role
+                '讓主角們發展出禁忌的戀情',
+                '讓主角們透過合作克服巨大難關',
+                '揭露主角群中某人的隱藏身份',
+                '讓故事充滿懸疑和陰謀',
+                '創造一個意外的反轉結局'
             ];
             return getRandomItem(possibleGoals);
         }
@@ -977,7 +1005,7 @@
                 return; // End turn flow
             }
 
-            // 2. Max cards played (4 rounds completed by each player)
+            // 2. Max cards played (custom rounds completed by each player)
             const allPlayersPlayedMaxCards = game.players.every(player => player.cardsPlayedInGame >= game.maxCardsPerGamePerPlayer);
             if (allPlayersPlayedMaxCards) {
                 game.isGameOver = true;
@@ -1204,7 +1232,7 @@
             3. 如果有「攻受逆轉卡」被使用，請在最終敘述中體現其對關係的影響。
             4. 保持故事的浪漫、曖昧或緊張氛圍，避免不必要的衝突細節。
             5. 請用繁體中文撰寫，語氣優美，情節引人入勝。
-            6. 故事字數建議在 300-500 字之間，能完整呈現從開始到結束的歷程。
+            6. 故事字數建議在 400-800 字之間，能完整呈現從開始到結束的歷程。
             7. 請特別注意主角的性別，在生成敘述時使用正確的代名詞和描寫。
             8. 最終結局應該和遊戲結束的原因（結局卡或回合結束）相呼應。
             `;
