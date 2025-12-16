@@ -232,7 +232,7 @@
 
     <script>
         // Gemini API Key
-        const API_KEY = "AIzaSyCEIsgA8IDtFfJX1sNNv48xnm1TTYKInm4"; // Provided by the user
+        const API_KEY = "AIzaSyDx2UbqeiAYFirj0kM3sVgoUg4H_Zfk1dE"; // Provided by the user
 
         // 遊戲數據與狀態
         let game = {
@@ -462,7 +462,7 @@
             `;
             const userQuery = `請生成一個世界觀和初始關係。`;
 
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${API_KEY}`;
             const payload = {
                 contents: [{ parts: [{ text: userQuery }] }],
                 systemInstruction: { parts: [{ text: systemPrompt }] },
@@ -684,7 +684,7 @@
             特點: ${character.traits}
             喜好: ${character.hobbies}`;
 
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${API_KEY}`;
 
             const payload = {
                 contents: [{ parts: [{ text: userQuery }] }],
@@ -1148,7 +1148,7 @@
 
             const userQuery = `遊戲中所有玩家的行動歷史：\n${allPlayerActionsText}\n\n最終生成的完整故事：\n${finalOverallStory}\n\n請判斷玩家 ${player.name} 的目標「${player.goal}」是否達成，並給出理由。`;
 
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${API_KEY}`;
 
             const payload = {
                 contents: [{ parts: [{ text: userQuery }] }],
@@ -1239,7 +1239,7 @@
 
             const userQuery = `以下是遊戲中所有玩家的行動歷史：\n${allPlayerActionsText}\n\n請根據這些行動，以及上述背景設定，為遊戲撰寫一個完整的最終結局故事。`;
 
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${API_KEY}`;
 
             // Define payload here
             const payload = {
