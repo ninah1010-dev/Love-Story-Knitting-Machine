@@ -118,11 +118,18 @@
 
         <div id="message-area" class="message-box"></div>
         <div id="loading-overlay" class="loading-overlay hidden">AI 正在撰寫故事... 請稍候...</div>
-
-
+        
         <!-- Start Page: 遊戲設定區塊 -->
         <div id="start-page" class="mb-8 p-6 bg-white rounded-xl shadow-md">
             <h2 class="text-2xl font-semibold mb-4 text-pink-600">遊戲設定與準備</h2>
+            
+            <!-- API Key Input Section -->
+            <div class="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                <label for="api-key-input" class="block text-lg font-medium text-gray-700 mb-2">Google Gemini API Key (必填):</label>
+                <input type="password" id="api-key-input" class="w-full p-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500" placeholder="請在此輸入您的 API Key (AIza...)">
+                <p class="text-xs text-gray-500 mt-1">您的 Key 僅會儲存在您的瀏覽器本地端 (LocalStorage)，用於呼叫 AI 生成劇情，不會上傳至其他伺服器。</p>
+            </div>
+
             <div class="mb-4">
                 <label for="human-player-count" class="block text-lg font-medium text-gray-700 mb-2">請選擇實際玩家人數 (1-5人):</label>
                 <input type="number" id="human-player-count" min="1" max="5" value="1" class="w-24 p-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500">
@@ -231,8 +238,54 @@
     </div>
 
     <script>
-        // Gemini API Key
-        const API_KEY = "AIzaSyDx2UbqeiAYFirj0kM3sVgoUg4H_Zfk1dE"; // Provided by the user
+        // Gemini API Key Management
+        let API_KEY = "";
+        
+        // Start Page Elements
+        const startPage = document.getElementById('start-page');
+        const apiKeyInput = document.getElementById('api-key-input'); // API Key Input Element
+        const humanPlayerCountInput = document.getElementById('human-player-count');
+        const protagonistCountInput = document.getElementById('protagonist-count');
+        const customRoundsPerPlayerInput = document.getElementById('custom-rounds-per-player'); 
+        const gameModeSelect = document.getElementById('game-mode');
+        const nextToCharacterSetupButton = document.getElementById('next-to-character-setup-button');
+
+        // Load stored API Key on startup
+        document.addEventListener('DOMContentLoaded', () => {
+            const storedKey = localStorage.getItem('gemini_api_key');
+            if (storedKey) {
+                apiKeyInput.value = storedKey;
+            }
+            
+            startPage.classList.remove('hidden');
+            characterSetupSection.classList.add('hidden');
+            gamePlaySection.classList.add('hidden');
+            gameEndSection.classList.add('hidden');
+        });
+
+        // Helper to ensure we have a key before making calls (Fallback)
+        function ensureApiKey() {
+            if (!API_KEY) {
+                // Should be set by setupCharacterPage, but as a fallback for robustness:
+                const storedKey = localStorage.getItem('gemini_api_key');
+                if (storedKey) {
+                    API_KEY = storedKey;
+                    return true;
+                }
+                
+                // If totally missing (e.g. cleared by error), ask again
+                const input = prompt("檢測到 API Key 遺失，請重新輸入您的 Google Gemini API Key：");
+                if (input && input.trim() !== "") {
+                    API_KEY = input.trim();
+                    localStorage.setItem('gemini_api_key', API_KEY);
+                    return true;
+                } else {
+                    showMessage("未輸入 API Key，AI 功能將無法使用。", "error");
+                    return false;
+                }
+            }
+            return true;
+        }
 
         // 遊戲數據與狀態
         let game = {
@@ -307,14 +360,6 @@
         // DOM 元素
         const messageArea = document.getElementById('message-area');
         const loadingOverlay = document.getElementById('loading-overlay');
-
-        // Start Page Elements
-        const startPage = document.getElementById('start-page');
-        const humanPlayerCountInput = document.getElementById('human-player-count');
-        const protagonistCountInput = document.getElementById('protagonist-count');
-        const customRoundsPerPlayerInput = document.getElementById('custom-rounds-per-player'); // New input
-        const gameModeSelect = document.getElementById('game-mode');
-        const nextToCharacterSetupButton = document.getElementById('next-to-character-setup-button');
 
         // Character Setup Page Elements
         const characterSetupSection = document.getElementById('character-setup-section');
@@ -391,6 +436,16 @@
         // --- Game Flow Functions ---
 
         function setupCharacterPage() {
+            // 1. Validate and Save API Key
+            const keyInput = apiKeyInput.value.trim();
+            if (!keyInput) {
+                showMessage('請輸入 Google Gemini API Key 以繼續！', 'error');
+                return;
+            }
+            API_KEY = keyInput;
+            localStorage.setItem('gemini_api_key', API_KEY);
+
+            // 2. Existing Setup Logic
             game.humanPlayerCount = parseInt(humanPlayerCountInput.value, 10);
             game.protagonistCount = parseInt(protagonistCountInput.value, 10);
             game.maxCardsPerGamePerPlayer = parseInt(customRoundsPerPlayerInput.value, 10); // Set custom rounds
@@ -451,6 +506,7 @@
         }
 
         async function generateWorldAndRelationshipWithAI() {
+            if (!ensureApiKey()) return;
             showLoading();
             const systemPrompt = `你是一位經驗豐富的愛情故事創作者，請為一個多元愛情故事遊戲《大家一起 Making Love》生成一個引人入勝的「世界觀」和「初始關係」。
             世界觀應具體、富有想像力且多樣化，避免重複主題。例如：'賽博龐克城市', '後啟示錄廢土', '太空殖民地', '古代王朝', '蒸汽龐克工業城', '奇幻森林國度', '水下都市', '虛擬實境世界', '時間旅行管理局', '神話時代', '犯罪都市', '末日方舟', '懸浮島嶼', '現代大學', '異世界轉生', '戰後重建區', '地下實驗室', '豪華度假村', '被遺忘的帝國', '未來都市的邊緣街區', '被魔法遺棄的小鎮', '星際貿易聯盟', '古代東方神秘國度', '賽博龐克地下城', '荒蕪的宇宙邊緣', '時間線錯亂的城市', '神祇共存的凡間', '高科技罪犯的樂園', '瘟疫籠罩的隔離區', '空中城堡', '沉沒大陸的遺民'。**請務必簡潔，不超過15個字**。
@@ -487,8 +543,13 @@
                 });
 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(`API error: ${response.status} - ${errorData.error.message}`);
+                    const errorData = await response.json().catch(() => ({}));
+                    if (response.status === 403) {
+                         localStorage.removeItem('gemini_api_key');
+                         API_KEY = "";
+                         throw new Error("API Key 無效或已過期，請重新嘗試並輸入有效的 Key。");
+                    }
+                    throw new Error(`API error: ${response.status} - ${errorData.error?.message || response.statusText}`);
                 }
 
                 const result = await response.json();
@@ -503,7 +564,7 @@
                 }
             } catch (error) {
                 console.error("Error generating worldview and relationship with AI:", error);
-                showMessage(`AI 生成世界觀與關係失敗：${error.message}。將使用預設隨機選項。`, 'error');
+                showMessage(`AI 生成失敗：${error.message}。將使用預設隨機選項。`, 'error');
                 worldviewInput.value = getRandomItem(game.cards.worldviews); // Use expanded list
                 relationshipInput.value = getRandomItem(game.cards.relationships); // Use expanded list
             } finally {
@@ -660,6 +721,7 @@
         }
 
         async function generateCharacterDetailsWithAI(character, worldview) {
+            if (!ensureApiKey()) throw new Error("API Key 未設定");
             const systemPrompt = `你是一位經驗豐富的角色設計師，將根據以下設定為一個故事主角生成符合情境的名字和約100字的人物簡介。請務必確保角色的屬性組合富有創意，避免重複或刻板印象。
             世界觀: ${worldview}
             角色性別: ${character.gender}
@@ -710,8 +772,13 @@
                 });
 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(`API error: ${response.status} - ${errorData.error.message}`);
+                    const errorData = await response.json().catch(() => ({}));
+                    if (response.status === 403) {
+                         localStorage.removeItem('gemini_api_key');
+                         API_KEY = "";
+                         throw new Error("API Key 無效或已過期，請重新嘗試。");
+                    }
+                    throw new Error(`API error: ${response.status} - ${errorData.error?.message || response.statusText}`);
                 }
 
                 const result = await response.json();
@@ -1122,6 +1189,7 @@
 
 
         async function evaluatePlayerGoalWithAI(player, allPlayerActionsText, finalOverallStory) {
+            if (!ensureApiKey()) return { achieved: false, explanation: "API Key 未設定，無法判定。" };
             // Updated to use game.gongs and game.shous
             const { gongs, shous, relationship, worldview, characters } = game;
             const gongNames = gongs.map(g => g.name).join('、') || '未指定攻';
@@ -1174,8 +1242,13 @@
                 });
 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(`API error: ${response.status} - ${errorData.error.message}`);
+                    const errorData = await response.json().catch(() => ({}));
+                    if (response.status === 403) {
+                         localStorage.removeItem('gemini_api_key');
+                         API_KEY = "";
+                         throw new Error("API Key 無效或已過期，請重新嘗試。");
+                    }
+                    throw new Error(`API error: ${response.status} - ${errorData.error?.message || response.statusText}`);
                 }
 
                 const result = await response.json();
@@ -1194,6 +1267,22 @@
 
 
         async function generateFinalStory() {
+            if (!ensureApiKey()) {
+                // Generate simple fallback immediately without AI
+                const fallbackStory = `由於未設定 API Key，無法生成 AI 完整結局。\n\n根據遊戲記錄，玩家們共同編織了一段發生在「${game.worldview}」中的故事，最終卡牌為「${game.endingCardPlayed ? game.endingCardPlayed.name : '（回合結束）'}」。感謝遊玩！`;
+                 const finalNarrationElement = document.createElement('p');
+                finalNarrationElement.classList.add('font-bold', 'text-purple-700', 'mt-6', 'text-lg');
+                finalNarrationElement.textContent = `【AI 最終故事結局 (離線版)】`;
+                storyDisplay.appendChild(finalNarrationElement);
+                const finalStoryTextElement = document.createElement('p');
+                finalStoryTextElement.textContent = fallbackStory;
+                storyDisplay.appendChild(finalStoryTextElement);
+                storyDisplay.scrollTop = storyDisplay.scrollHeight;
+                displayFinalGameRecord();
+                gamePlaySection.classList.add('hidden');
+                gameEndSection.classList.remove('hidden');
+                return;
+            }
             showLoading();
 
             const allPlayerActionsText = game.allPlayerActionsHistory.map(action => {
@@ -1256,8 +1345,13 @@
                 });
 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(`API error: ${response.status} - ${errorData.error.message}`);
+                     const errorData = await response.json().catch(() => ({}));
+                    if (response.status === 403) {
+                         localStorage.removeItem('gemini_api_key');
+                         API_KEY = "";
+                         throw new Error("API Key 無效或已過期，請重新嘗試。");
+                    }
+                    throw new Error(`API error: ${response.status} - ${errorData.error?.message || response.statusText}`);
                 }
 
                 const result = await response.json();
@@ -1271,7 +1365,7 @@
             } catch (error) {
                 console.error("Error generating final story:", error);
                 showMessage(`AI 最終故事生成失敗：${error.message}。將使用預設結局概述。`, 'error');
-                finalNarration = `【AI 助手】由於AI服務問題，無法生成詳細結局。但根據所有玩家的行動，我們的故事在一個${game.endingCardPlayed ? game.endingCardPlayed.name : '充滿懸念'}的時刻結束了。`;
+                finalNarration = `【AI 助手】由於AI服務問題（${error.message}），無法生成詳細結局。但根據所有玩家的行動，我們的故事在一個${game.endingCardPlayed ? game.endingCardPlayed.name : '充滿懸念'}的時刻結束了。`;
             } finally {
                 // Append final narration to storyDisplay
                 const finalNarrationElement = document.createElement('p');
